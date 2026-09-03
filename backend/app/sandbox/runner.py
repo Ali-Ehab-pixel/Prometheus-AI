@@ -160,12 +160,13 @@ def run_code_locally_isolated(
             [sys.executable, script_path],
             cwd=temp_dir,
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
         )
 
-        stdout = result.stdout
-        stderr = result.stderr
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
         success = result.returncode == 0
 
         # Read back the artifact
@@ -180,8 +181,17 @@ def run_code_locally_isolated(
             artifact_filename = expected_artifact_name
             artifact_type = Path(expected_artifact_name).suffix.lstrip(".").lower()
         else:
-            # Check other generated files
-            for alt_name in ["output_cleaned.csv", "output_cleaned.xlsx", "output_plot.html", "output_predictions.csv"]:
+            # Check standard known alternatives
+            for alt_name in [
+                "output_cleaned.csv",
+                "output_cleaned.xlsx",
+                "output_plot.html",
+                "output_predictions.csv",
+                "output_predictions.xlsx",
+                "predictions.csv",
+                "cleaned_data.csv",
+                "plot.html",
+            ]:
                 alt_path = os.path.join(temp_dir, alt_name)
                 if os.path.exists(alt_path):
                     with open(alt_path, "rb") as f:
@@ -189,6 +199,17 @@ def run_code_locally_isolated(
                     artifact_filename = alt_name
                     artifact_type = Path(alt_name).suffix.lstrip(".").lower()
                     break
+            else:
+                # Scan directory for any generated output file (ignoring script & input dataset)
+                ignored_names = {"sandbox_runner.py", dataset_filename, "dataset.csv"}
+                for fname in os.listdir(temp_dir):
+                    if fname not in ignored_names and fname.endswith((".csv", ".xlsx", ".html", ".json")):
+                        fpath = os.path.join(temp_dir, fname)
+                        with open(fpath, "rb") as f:
+                            artifact_bytes = f.read()
+                        artifact_filename = fname
+                        artifact_type = Path(fname).suffix.lstrip(".").lower()
+                        break
 
         error_msg = stderr if not success else None
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "../context/AuthContext";
 
 export const metadata: Metadata = {
   title: "AI Data Analyst Platform",
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-[#090d16] text-slate-100 antialiased min-h-screen flex flex-col bg-grid-pattern">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

@@ -9,6 +9,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
+from app.auth import router as auth_router
 from app.config import settings
 from app.graph.state import AgentState
 from app.graph.workflow import analysis_graph
@@ -43,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Authentication Router
+app.include_router(auth_router)
 
 # In-memory storage for active file sessions: file_id -> { "file_path", "filename", "metadata" }
 FILE_REGISTRY: Dict[str, Dict] = {}

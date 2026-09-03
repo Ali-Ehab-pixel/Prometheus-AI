@@ -50,7 +50,10 @@ htmlcov/
 uploads/
 artifacts/
 temp/
+backend/data/
+data/
 *.sqlite3
+*.db
 
 # IDE / OS
 .idea/

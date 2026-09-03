@@ -1,5 +1,6 @@
 import ast
 import re
+import textwrap
 import logging
 from typing import Optional
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -15,24 +16,77 @@ from app.graph.state import AgentState
 logger = logging.getLogger(__name__)
 
 
+def _clean_code_candidate(raw: str) -> str:
+    if not raw:
+        return ""
+    lines = raw.splitlines()
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if not lines:
+        return ""
+
+    code_v1 = textwrap.dedent("\n".join(lines)).strip()
+    try:
+        ast.parse(code_v1)
+        return code_v1
+    except SyntaxError:
+        pass
+
+    if len(lines) > 1:
+        non_empty_rest = [l for l in lines[1:] if l.strip()]
+        if non_empty_rest:
+            common_rest_indent = min(len(l) - len(l.lstrip()) for l in non_empty_rest)
+            if common_rest_indent > 0:
+                fixed_lines = [lines[0].strip()] + [
+                    l[common_rest_indent:] if l.startswith(" " * common_rest_indent) else l.lstrip()
+                    for l in lines[1:]
+                ]
+                code_v2 = "\n".join(fixed_lines).strip()
+                try:
+                    ast.parse(code_v2)
+                    return code_v2
+                except SyntaxError:
+                    pass
+
+    return code_v1
+
+
 def extract_python_code(text: str) -> str:
     """
     Extracts pure Python code from a markdown-formatted LLM response.
-    Handles ```python ... ```, ``` ... ```, or plain python scripts.
+    Handles thinking preambles, multiple code blocks, stripping non-code wrappers,
+    and returns the best valid Python script.
     """
     if not text:
         return ""
 
-    # Look for ```python ... ``` block
     pattern_python = r"```(?:python|py)?\s*([\s\S]*?)```"
     matches = re.findall(pattern_python, text, re.IGNORECASE)
-    if matches:
-        # Return the longest code block (usually the main script)
-        longest_match = max(matches, key=len).strip()
-        return longest_match
 
-    # If no markdown block found, strip leading/trailing whitespace
-    return text.strip()
+    candidates = []
+    if matches:
+        # Check from last match to first match (final code block first)
+        for m in reversed(matches):
+            c = _clean_code_candidate(m)
+            if c:
+                candidates.append(c)
+
+    # Fallback to full text cleaned
+    full_cleaned = _clean_code_candidate(text)
+    if full_cleaned:
+        candidates.append(full_cleaned)
+
+    # Pick first candidate that parses cleanly with ast.parse
+    for candidate in candidates:
+        try:
+            ast.parse(candidate)
+            return candidate
+        except SyntaxError:
+            continue
+
+    return candidates[0] if candidates else ""
 
 
 def validate_python_syntax(code: str) -> Optional[str]:
