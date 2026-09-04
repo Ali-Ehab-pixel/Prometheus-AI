@@ -36,6 +36,12 @@ def get_mime_type(filename: str) -> str:
         return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     elif ext == ".html":
         return "text/html"
+    elif ext == ".png":
+        return "image/png"
+    elif ext in [".jpg", ".jpeg"]:
+        return "image/jpeg"
+    elif ext == ".svg":
+        return "image/svg+xml"
     elif ext == ".json":
         return "application/json"
     return "application/octet-stream"
@@ -150,12 +156,26 @@ def run_code_locally_isolated(
         if not os.path.exists(standard_alias_path):
             shutil.copyfile(dataset_path, standard_alias_path)
 
-        # Write script to run
+        # Write script to run with guaranteed UTF-8 stream wrapping
         script_path = os.path.join(temp_dir, "sandbox_runner.py")
+        utf8_preamble = (
+            "import sys, io\n"
+            "try:\n"
+            "    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')\n"
+            "    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')\n"
+            "except Exception:\n"
+            "    pass\n\n"
+        )
         with open(script_path, "w", encoding="utf-8") as f:
-            f.write(code)
+            f.write(utf8_preamble + code)
 
-        # Execute script in isolated temp directory
+        # Execute script in isolated temp directory with UTF-8 environment
+        sub_env = {
+            **os.environ,
+            "PYTHONIOENCODING": "utf-8",
+            "PYTHONUTF8": "1",
+        }
+
         result = subprocess.run(
             [sys.executable, script_path],
             cwd=temp_dir,
@@ -163,6 +183,7 @@ def run_code_locally_isolated(
             encoding="utf-8",
             errors="replace",
             timeout=timeout,
+            env=sub_env,
         )
 
         stdout = result.stdout or ""
