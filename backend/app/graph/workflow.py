@@ -6,6 +6,9 @@ from app.graph.nodes import (
     data_engineer_node,
     ml_forecaster_node,
     visualization_node,
+    insights_node,
+    classifier_node,
+    automl_node,
 )
 from app.graph.router import route_action
 from app.graph.state import AgentState
@@ -23,6 +26,9 @@ def build_analysis_graph():
     workflow.add_node("data_engineer", data_engineer_node)
     workflow.add_node("visualization", visualization_node)
     workflow.add_node("ml_forecaster", ml_forecaster_node)
+    workflow.add_node("insights", insights_node)
+    workflow.add_node("classifier", classifier_node)
+    workflow.add_node("automl", automl_node)
     workflow.add_node("code_extractor", code_extractor_node)
 
     # 2. Add Conditional Router from START
@@ -33,6 +39,9 @@ def build_analysis_graph():
             "data_engineer": "data_engineer",
             "visualization": "visualization",
             "ml_forecaster": "ml_forecaster",
+            "insights": "insights",
+            "classifier": "classifier",
+            "automl": "automl",
         },
     )
 
@@ -40,6 +49,9 @@ def build_analysis_graph():
     workflow.add_edge("data_engineer", "code_extractor")
     workflow.add_edge("visualization", "code_extractor")
     workflow.add_edge("ml_forecaster", "code_extractor")
+    workflow.add_edge("insights", "code_extractor")
+    workflow.add_edge("classifier", "code_extractor")
+    workflow.add_edge("automl", "code_extractor")
 
     # 4. Connect Code Extractor to END
     workflow.add_edge("code_extractor", END)

@@ -24,7 +24,7 @@ def get_llm() -> BaseChatModel:
             max_tokens=4096,
             default_headers={
                 "HTTP-Referer": "http://localhost:3000",
-                "X-Title": "AI Data Analyst Platform",
+                "X-Title": "AI Data Scientist Platform",
             },
         )
 
@@ -36,12 +36,24 @@ def get_llm() -> BaseChatModel:
             max_tokens=4096,
             default_headers={
                 "HTTP-Referer": "http://localhost:3000",
-                "X-Title": "AI Data Analyst Platform",
+                "X-Title": "AI Data Scientist Platform",
             },
         )
 
-        # Attach fallback model
-        llm_with_fallback = primary_llm.with_fallbacks([fallback_llm])
+        fallback_llm_2 = ChatOpenAI(
+            model="nvidia/nemotron-3.5-lightning:free",
+            api_key=settings.OPENROUTER_API_KEY,
+            base_url=settings.OPENROUTER_BASE_URL,
+            temperature=0.1,
+            max_tokens=4096,
+            default_headers={
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "AI Data Scientist Platform",
+            },
+        )
+
+        # Attach fallback models
+        llm_with_fallback = primary_llm.with_fallbacks([fallback_llm, fallback_llm_2])
         return llm_with_fallback
 
     # 2. Check OpenAI Direct Key

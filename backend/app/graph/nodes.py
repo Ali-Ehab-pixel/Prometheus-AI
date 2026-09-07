@@ -10,6 +10,9 @@ from app.graph.prompts import (
     DATA_ENGINEER_SYSTEM_PROMPT,
     VISUALIZATION_SYSTEM_PROMPT,
     ML_FORECASTER_SYSTEM_PROMPT,
+    INSIGHTS_SYSTEM_PROMPT,
+    CLASSIFIER_SYSTEM_PROMPT,
+    AUTOML_LEADERBOARD_SYSTEM_PROMPT,
 )
 from app.graph.state import AgentState
 
@@ -210,6 +213,138 @@ User Request/Instructions:
 {user_instructions}
 
 Target Output File:
+{output_filename}
+"""
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt),
+    ]
+
+    response = llm.invoke(messages)
+    raw_content = response.content if hasattr(response, "content") else str(response)
+
+    return {
+        **state,
+        "raw_llm_response": raw_content,
+        "expected_artifact_path": output_filename,
+    }
+
+
+def insights_node(state: AgentState) -> AgentState:
+    """
+    Agent node for extracting Statistical Data Insights, correlations, and anomalies.
+    """
+    llm = get_llm()
+    output_filename = "output_insights.json"
+    dataset_path = state.get("dataset_path", "dataset.csv")
+    user_instructions = state.get("user_instructions") or "Perform in-depth exploratory analysis, compute key correlations, detect anomalies, and extract high-value insights."
+
+    system_prompt = INSIGHTS_SYSTEM_PROMPT.format(
+        dataset_path=dataset_path,
+        output_filename=output_filename,
+        user_instructions=user_instructions,
+    )
+
+    user_prompt = f"""Please generate the Python script to extract high-value data insights:
+
+{state.get('dataset_schema_str', '')}
+
+User Request/Focus:
+{user_instructions}
+
+Target Output File:
+{output_filename}
+"""
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt),
+    ]
+
+    response = llm.invoke(messages)
+    raw_content = response.content if hasattr(response, "content") else str(response)
+
+    return {
+        **state,
+        "raw_llm_response": raw_content,
+        "expected_artifact_path": output_filename,
+    }
+
+
+def classifier_node(state: AgentState) -> AgentState:
+    """
+    Agent node for Classification machine learning tasks.
+    """
+    llm = get_llm()
+    target_format = state.get("target_format", "csv") or "csv"
+    output_filename = f"output_predictions.{target_format}"
+    dataset_path = state.get("dataset_path", "dataset.csv")
+    target_column = state.get("target_column") or "Auto-detect"
+
+    system_prompt = CLASSIFIER_SYSTEM_PROMPT.format(
+        dataset_path=dataset_path,
+        output_filename=output_filename,
+        target_column=target_column,
+    )
+
+    user_instructions = state.get("user_instructions") or "Train a robust classification pipeline, optimize hyperparameters, report accuracy and F1 score, and output predictions."
+    user_prompt = f"""Please generate the Python script with Scikit-Learn to build the Classification model:
+
+{state.get('dataset_schema_str', '')}
+
+Target Variable (Categorical / Class):
+{target_column}
+
+User Request/Instructions:
+{user_instructions}
+
+Target Output File:
+{output_filename}
+"""
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt),
+    ]
+
+    response = llm.invoke(messages)
+    raw_content = response.content if hasattr(response, "content") else str(response)
+
+    return {
+        **state,
+        "raw_llm_response": raw_content,
+        "expected_artifact_path": output_filename,
+    }
+
+
+def automl_node(state: AgentState) -> AgentState:
+    """
+    Agent node for Multi-Model AutoML Benchmarking and Leaderboard Generation.
+    """
+    llm = get_llm()
+    output_filename = "output_leaderboard.json"
+    dataset_path = state.get("dataset_path", "dataset.csv")
+    target_column = state.get("target_column") or "Auto-detect"
+
+    system_prompt = AUTOML_LEADERBOARD_SYSTEM_PROMPT.format(
+        dataset_path=dataset_path,
+        output_filename=output_filename,
+        target_column=target_column,
+    )
+
+    user_instructions = state.get("user_instructions") or "Train multiple competitive ML models, rank them on an evaluation leaderboard, and persist the winning model."
+    user_prompt = f"""Please generate the Python AutoML script to train and benchmark models:
+
+{state.get('dataset_schema_str', '')}
+
+Target Column:
+{target_column}
+
+User Instructions/Focus:
+{user_instructions}
+
+Leaderboard Output File:
 {output_filename}
 """
 

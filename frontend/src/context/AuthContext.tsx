@@ -28,41 +28,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
-    async function loadStoredAuth() {
+    async function checkSession() {
       try {
-        const storedToken = localStorage.getItem("datamorph_auth_token");
-        const storedUser = localStorage.getItem("datamorph_auth_user");
-
+        const storedToken = sessionStorage.getItem("datamorph_auth_token");
         if (storedToken) {
           setToken(storedToken);
-          if (storedUser) {
-            try {
-              setUser(JSON.parse(storedUser));
-            } catch {
-              // fallback to fetching
-            }
-          }
-          // Verify & refresh profile with backend
-          try {
-            const profile = await getProfile();
-            setUser(profile);
-            localStorage.setItem("datamorph_auth_user", JSON.stringify(profile));
-          } catch (e) {
-            console.warn("Session token expired or backend offline:", e);
-          }
+          const profile = await getProfile();
+          setUser(profile);
+          sessionStorage.setItem("datamorph_auth_user", JSON.stringify(profile));
         }
       } catch (err) {
-        console.error("Error loading auth state:", err);
-      } finally {
-        setIsLoading(false);
+        console.warn("Failed to restore session from sessionStorage:", err);
+        setToken(null);
+        setUser(null);
+        sessionStorage.removeItem("datamorph_auth_token");
+        sessionStorage.removeItem("datamorph_auth_user");
       }
     }
-
-    loadStoredAuth();
+    checkSession();
   }, []);
 
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
@@ -70,8 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.access_token && res.user) {
       setToken(res.access_token);
       setUser(res.user);
-      localStorage.setItem("datamorph_auth_token", res.access_token);
-      localStorage.setItem("datamorph_auth_user", JSON.stringify(res.user));
+      sessionStorage.setItem("datamorph_auth_token", res.access_token);
+      sessionStorage.setItem("datamorph_auth_user", JSON.stringify(res.user));
+      localStorage.setItem("datamorph_has_registered", "true");
     }
     return res;
   };
@@ -81,8 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.access_token && res.user) {
       setToken(res.access_token);
       setUser(res.user);
-      localStorage.setItem("datamorph_auth_token", res.access_token);
-      localStorage.setItem("datamorph_auth_user", JSON.stringify(res.user));
+      sessionStorage.setItem("datamorph_auth_token", res.access_token);
+      sessionStorage.setItem("datamorph_auth_user", JSON.stringify(res.user));
+      localStorage.setItem("datamorph_has_registered", "true");
     }
     return res;
   };
@@ -90,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (payload: UpdateProfilePayload): Promise<User> => {
     const updated = await updateUserProfile(payload);
     setUser(updated);
-    localStorage.setItem("datamorph_auth_user", JSON.stringify(updated));
+    sessionStorage.setItem("datamorph_auth_user", JSON.stringify(updated));
     return updated;
   };
 
@@ -98,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const profile = await getProfile();
       setUser(profile);
-      localStorage.setItem("datamorph_auth_user", JSON.stringify(profile));
+      sessionStorage.setItem("datamorph_auth_user", JSON.stringify(profile));
     } catch (err) {
       console.warn("Failed to refresh user profile:", err);
     }
@@ -108,8 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await logoutUserApi();
     setUser(null);
     setToken(null);
-    localStorage.removeItem("datamorph_auth_token");
-    localStorage.removeItem("datamorph_auth_user");
+    sessionStorage.removeItem("datamorph_auth_token");
+    sessionStorage.removeItem("datamorph_auth_user");
     router.push("/login");
   };
 

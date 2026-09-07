@@ -12,12 +12,24 @@ import {
   ChevronDown,
   LayoutDashboard,
   Shield,
+  History,
+  FileText,
 } from "lucide-react";
 import { checkBackendHealth } from "../lib/api";
 import { HealthStatus } from "../lib/types";
 import { useAuth } from "../context/AuthContext";
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onOpenHistory?: () => void;
+  onOpenReport?: () => void;
+  hasActiveDataset?: boolean;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({
+  onOpenHistory,
+  onOpenReport,
+  hasActiveDataset = false,
+}) => {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -80,7 +92,7 @@ export const Navbar: React.FC = () => {
                 LangGraph + E2B
               </span>
             </div>
-            <p className="text-xs text-slate-400">Autonomous Tabular AI Analyst Platform</p>
+            <p className="text-xs text-slate-400">Autonomous AI Data Scientist Platform</p>
           </div>
         </Link>
 
@@ -91,7 +103,7 @@ export const Navbar: React.FC = () => {
             <Cpu className="h-3.5 w-3.5 text-purple-400" />
             <span className="text-slate-400">Model:</span>
             <span className="font-mono text-purple-300 font-medium truncate max-w-[180px]">
-              {health?.primary_model || "nvidia/nemotron-3.5-lightning:free"}
+              {health?.primary_model || "qwen/qwen3-30b-a3b:free"}
             </span>
           </div>
 
@@ -119,6 +131,32 @@ export const Navbar: React.FC = () => {
               {health?.status === "online" ? "Online" : loading ? "Connecting..." : "Offline"}
             </span>
           </div>
+
+          {/* Quick Action: Report Exporter */}
+          {hasActiveDataset && onOpenReport && (
+            <button
+              type="button"
+              onClick={onOpenReport}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 font-semibold text-xs transition-all shadow-sm"
+              title="Generate Executive Report"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Export Report</span>
+            </button>
+          )}
+
+          {/* Quick Action: Experiment History */}
+          {onOpenHistory && (
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-medium text-xs transition-all shadow-sm"
+              title="View Experiment & Analysis Run History"
+            >
+              <History className="h-3.5 w-3.5 text-indigo-400" />
+              <span className="hidden sm:inline">Run History</span>
+            </button>
+          )}
 
           {/* User Auth Buttons or Profile Dropdown */}
           {isAuthenticated && user ? (

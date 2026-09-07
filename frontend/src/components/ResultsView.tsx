@@ -20,16 +20,33 @@ import {
   Wand2,
   Layers,
   FileCheck,
+  Lightbulb,
+  Crosshair,
+  BookmarkCheck,
+  FileJson,
+  Trophy,
 } from "lucide-react";
-import { ActionResponse } from "../lib/types";
+import { ActionResponse, ColumnInfo } from "../lib/types";
 import { getArtifactDownloadUrl } from "../lib/api";
 import { CodeViewer } from "./CodeViewer";
+import { ChartGallery } from "./ChartGallery";
+import { ModelLeaderboard } from "./ModelLeaderboard";
+import { FeatureImportance } from "./FeatureImportance";
+import { PredictionSimulator } from "./PredictionSimulator";
 
 interface ResultsViewProps {
   result: ActionResponse;
+  fileId?: string;
+  columns?: ColumnInfo[];
+  targetColumn?: string;
 }
 
-export const ResultsView: React.FC<ResultsViewProps> = ({ result }) => {
+export const ResultsView: React.FC<ResultsViewProps> = ({
+  result,
+  fileId,
+  columns,
+  targetColumn,
+}) => {
   const [activeTab, setActiveTab] = useState<"result" | "code" | "logs">("result");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -97,10 +114,20 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ result }) => {
               {result.action === "clean" && "Data Clean & Transform Pipeline Succeeded"}
               {result.action === "visualize" && "Interactive Visualization Generated"}
               {result.action === "predict" && "Machine Learning Forecast & Predictions Complete"}
+              {result.action === "insights" && "Automated Statistical Insights & Discoveries"}
+              {result.action === "classify" && "Classification Model Training & Evaluation Complete"}
+              {result.action === "automl" && "AutoML Model Benchmark & Leaderboard Complete"}
+              {result.action === "analyze_all" && "Comprehensive End-to-End Analysis Pipeline Complete"}
             </h3>
             <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 uppercase font-semibold">
               {result.action}
             </span>
+            {result.version_saved && (
+              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-semibold flex items-center space-x-1">
+                <BookmarkCheck className="h-3 w-3 text-emerald-400" />
+                <span>Version {result.version_saved} Saved</span>
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400">
             Script orchestrated via LangGraph and executed in an isolated sandbox environment.
@@ -214,99 +241,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ result }) => {
           {/* 1. VISUALIZATION OUTPUT CONTAINER                         */}
           {/* ======================================================== */}
           {result.action === "visualize" && (
-            <div className="space-y-4">
-              {/* Plotly Interactive Frame or Static Matplotlib/Seaborn Image */}
-              {isImageViz && downloadUrl ? (
-                <div className="p-4 rounded-2xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center shadow-xl">
-                  <div className="w-full flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3 px-2">
-                    <span className="text-xs font-semibold text-slate-300 flex items-center space-x-2">
-                      <ImageIcon className="h-4 w-4 text-emerald-400" />
-                      <span>Rendered Chart (Seaborn / Matplotlib / High-Res)</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleDownloadImage}
-                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center space-x-1"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      <span>Download PNG</span>
-                    </button>
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={downloadUrl}
-                    alt="Visualization Output"
-                    className="max-h-[600px] w-auto rounded-xl object-contain shadow-md"
-                  />
-                </div>
-              ) : (
-                <div
-                  className={`relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden shadow-2xl transition-all ${
-                    isFullscreen ? "fixed inset-4 z-50 p-4 bg-slate-950 flex flex-col" : "h-[600px]"
-                  }`}
-                >
-                  {/* Plotly Top Interactive Controls */}
-                  <div className="absolute top-3 right-3 z-10 flex items-center space-x-2 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-xs shadow-xl">
-                    <button
-                      type="button"
-                      onClick={handleDownloadImage}
-                      className="flex items-center space-x-1.5 text-slate-200 hover:text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors font-medium cursor-pointer"
-                      title="Download Plot as PNG Image"
-                    >
-                      <ImageIcon className="h-3.5 w-3.5 text-emerald-400" />
-                      <span>Save PNG</span>
-                    </button>
-                    <div className="h-3.5 w-px bg-slate-700" />
-                    <button
-                      type="button"
-                      onClick={() => setIsFullscreen(!isFullscreen)}
-                      className="text-slate-300 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="Toggle Fullscreen"
-                    >
-                      {isFullscreen ? (
-                        <Minimize2 className="h-3.5 w-3.5" />
-                      ) : (
-                        <Maximize2 className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                    {downloadUrl && downloadUrl !== "#" && (
-                      <a
-                        href={downloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-slate-300 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors"
-                        title="Open in new window"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    )}
-                  </div>
-
-                  {/* Interactive Plotly iframe */}
-                  <iframe
-                    ref={iframeRef}
-                    srcDoc={result.artifact?.html_content || undefined}
-                    src={!result.artifact?.html_content ? downloadUrl : undefined}
-                    className="w-full h-full border-0 rounded-xl"
-                    title="Interactive Plotly Graph"
-                    sandbox="allow-scripts allow-same-origin allow-downloads"
-                  />
-                </div>
-              )}
-
-              {/* Chart Insights Card */}
-              {result.stdout && (
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs space-y-2">
-                  <div className="flex items-center space-x-2 text-indigo-300 font-semibold">
-                    <Sparkles className="h-4 w-4" />
-                    <span>Visual Analysis & Key Insights</span>
-                  </div>
-                  <pre className="text-slate-300 font-mono text-[11px] whitespace-pre-wrap leading-relaxed">
-                    {result.stdout}
-                  </pre>
-                </div>
-              )}
-            </div>
+            <ChartGallery
+              primaryArtifact={result.artifact}
+              artifacts={result.artifacts}
+              stdout={result.stdout}
+            />
           )}
 
           {/* ======================================================== */}
@@ -400,6 +339,334 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ result }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Phase 6: Feature Importance & Explainability */}
+              {result.explainability_data && (
+                <FeatureImportance explainability={result.explainability_data} />
+              )}
+
+              {/* Phase 7: Interactive What-If Scenario Simulator */}
+              {fileId && columns && columns.length > 0 && (
+                <PredictionSimulator
+                  fileId={fileId}
+                  columns={columns}
+                  targetColumn={result.explainability_data?.target_column || targetColumn}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* 4. FIND INSIGHTS OUTPUT CONTAINER                        */}
+          {/* ======================================================== */}
+          {result.action === "insights" && (
+            <div className="space-y-6">
+              {/* Structured Insights Dashboard */}
+              {result.insights_data && (
+                <div className="space-y-6">
+                  {/* Executive Summary */}
+                  {result.insights_data.executive_summary && (
+                    <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 text-amber-200 text-xs leading-relaxed space-y-1.5">
+                      <div className="flex items-center space-x-2 font-bold text-amber-300">
+                        <Lightbulb className="h-4 w-4" />
+                        <span>Executive Summary</span>
+                      </div>
+                      <p className="text-slate-300">{result.insights_data.executive_summary}</p>
+                    </div>
+                  )}
+
+                  {/* Key Insights Grid */}
+                  {result.insights_data.key_insights && result.insights_data.key_insights.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Key Statistical Discoveries:
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {result.insights_data.key_insights.map((item, idx) => {
+                          let badgeColor = "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+                          if (item.category === "anomaly") badgeColor = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+                          if (item.category === "correlation") badgeColor = "bg-purple-500/10 text-purple-400 border-purple-500/20";
+                          if (item.category === "trend") badgeColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                          if (item.category === "distribution") badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+
+                          return (
+                            <div
+                              key={idx}
+                              className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5 shadow-md hover:border-slate-700 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                                  {item.category}
+                                </span>
+                                {item.metric && (
+                                  <span className="font-mono text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                                    {item.metric}
+                                  </span>
+                                )}
+                              </div>
+                              <h5 className="font-semibold text-slate-100 text-xs">{item.title}</h5>
+                              <p className="text-slate-400 text-xs leading-relaxed">{item.description}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top Correlations & Anomalies Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {result.insights_data.top_correlations && result.insights_data.top_correlations.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+                        <span className="text-xs font-bold text-slate-300 flex items-center space-x-2">
+                          <TrendingUp className="h-4 w-4 text-purple-400" />
+                          <span>Strongest Feature Correlations</span>
+                        </span>
+                        <div className="space-y-2 text-xs">
+                          {result.insights_data.top_correlations.slice(0, 5).map((corr, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800/80">
+                              <span className="text-slate-300 font-mono truncate max-w-[200px]">
+                                {corr.feature_x} ↔ {corr.feature_y}
+                              </span>
+                              <span className="font-mono font-bold text-purple-400">
+                                {corr.correlation > 0 ? `+${corr.correlation.toFixed(3)}` : corr.correlation.toFixed(3)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {result.insights_data.anomalies_detected && result.insights_data.anomalies_detected.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+                        <span className="text-xs font-bold text-slate-300 flex items-center space-x-2">
+                          <AlertCircle className="h-4 w-4 text-rose-400" />
+                          <span>Statistical Outliers & Deviations</span>
+                        </span>
+                        <div className="space-y-2 text-xs">
+                          {result.insights_data.anomalies_detected.slice(0, 5).map((anom, idx) => (
+                            <div key={idx} className="p-2 rounded-xl bg-slate-900 border border-slate-800/80 space-y-1">
+                              <div className="flex items-center justify-between font-mono">
+                                <span className="text-slate-200 font-semibold">{anom.column}</span>
+                                <span className="text-rose-400 font-bold">{anom.outlier_count} outliers</span>
+                              </div>
+                              <p className="text-[11px] text-slate-400">{anom.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Formatted Insights Report (from stdout) */}
+              <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                      <Lightbulb className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-100 text-base">
+                        Comprehensive Insights & Patterns Report
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        Statistical discovery analysis generated and computed in isolated sandbox
+                      </p>
+                    </div>
+                  </div>
+
+                  {result.artifact?.download_url && (
+                    <a
+                      href={downloadUrl}
+                      download={result.artifact.filename || "output_insights.json"}
+                      className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-semibold text-xs shadow-md shadow-amber-600/20"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>Download Insights Report ({result.artifact.filename || "output_insights.json"})</span>
+                    </a>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Detailed Statistical Findings:
+                  </span>
+                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-amber-200/90 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap">
+                    {result.stdout || "Exploratory data insights extracted successfully."}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* 5. CLASSIFY OUTPUT CONTAINER                             */}
+          {/* ======================================================== */}
+          {result.action === "classify" && (
+            <div className="space-y-6">
+              <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                      <Crosshair className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-100 text-base">
+                        Classification Model Performance & Scores
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        Stratified cross-validation, precision/recall evaluation, and class predictions
+                      </p>
+                    </div>
+                  </div>
+
+                  {result.artifact?.download_url && (
+                    <a
+                      href={downloadUrl}
+                      download={result.artifact.filename || "output_predictions.csv"}
+                      className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white font-semibold text-xs shadow-md shadow-cyan-600/20"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>Download Predictions ({result.artifact.filename || "output_predictions.csv"})</span>
+                    </a>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Classification Performance Metrics & Confusion Matrix:
+                  </span>
+                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-cyan-200/90 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap">
+                    {result.stdout || "Classification model trained successfully. Predictions and confidence probabilities appended to output_predictions.csv."}
+                  </div>
+                </div>
+              </div>
+
+              {/* Phase 6: Feature Importance & Explainability */}
+              {result.explainability_data && (
+                <FeatureImportance explainability={result.explainability_data} />
+              )}
+
+              {/* Phase 7: Interactive What-If Scenario Simulator */}
+              {fileId && columns && columns.length > 0 && (
+                <PredictionSimulator
+                  fileId={fileId}
+                  columns={columns}
+                  targetColumn={result.explainability_data?.target_column || targetColumn}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* 6. ANALYZE EVERYTHING OUTPUT CONTAINER                   */}
+          {/* ======================================================== */}
+          {result.action === "analyze_all" && (
+            <div className="space-y-6">
+              <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center">
+                      <Layers className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-100 text-base">
+                        Comprehensive End-to-End Pipeline Execution
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        Autonomous pipeline: Data cleaning, transformation, and analytical modeling
+                      </p>
+                    </div>
+                  </div>
+
+                  {result.artifact?.download_url && (
+                    <a
+                      href={downloadUrl}
+                      download={result.artifact.filename || "output.csv"}
+                      className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-semibold text-xs shadow-md shadow-fuchsia-600/20"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>Download Artifact ({result.artifact.filename || "output.csv"})</span>
+                    </a>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Pipeline Execution Summary:
+                  </span>
+                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-fuchsia-200/90 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap">
+                    {result.stdout || "Comprehensive pipeline execution completed successfully."}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* 7. AUTOML MODEL BENCHMARK LEADERBOARD CONTAINER          */}
+          {/* ======================================================== */}
+          {(result.action === "automl" || result.leaderboard_data) && (
+            <div className="space-y-6">
+              {result.leaderboard_data ? (
+                <ModelLeaderboard
+                  leaderboard={result.leaderboard_data}
+                  artifacts={result.artifacts}
+                />
+              ) : (
+                <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-5 shadow-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                        <Trophy className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-100 text-base">
+                          AutoML Benchmark & Model Leaderboard
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                          Trained 5 competitive algorithms and evaluated on cross-validated test metrics
+                        </p>
+                      </div>
+                    </div>
+
+                    {result.artifact?.download_url && (
+                      <a
+                        href={downloadUrl}
+                        download={result.artifact.filename || "best_model.joblib"}
+                        className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Download Winning Model ({result.artifact.filename || "best_model.joblib"})</span>
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Leaderboard Benchmark Output:
+                    </span>
+                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-amber-200/90 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap">
+                      {result.stdout || "AutoML benchmark completed successfully. Best model saved to best_model.joblib."}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Phase 6: Feature Importance & Explainability */}
+              {result.explainability_data && (
+                <FeatureImportance explainability={result.explainability_data} />
+              )}
+
+              {/* Phase 7: Interactive What-If Scenario Simulator */}
+              {fileId && columns && columns.length > 0 && (
+                <PredictionSimulator
+                  fileId={fileId}
+                  columns={columns}
+                  targetColumn={result.explainability_data?.target_column || result.leaderboard_data?.target_column || targetColumn}
+                />
+              )}
             </div>
           )}
         </div>

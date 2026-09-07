@@ -25,8 +25,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
+!frontend/src/lib/
 parts/
 sdist/
 var/
@@ -48,10 +49,13 @@ htmlcov/
 
 # Uploads & Runtime Artifacts
 uploads/
+backend/uploads/
 artifacts/
+backend/artifacts/
 temp/
 backend/data/
-data/
+/data/
+!backend/app/data/
 *.sqlite3
 *.db
 

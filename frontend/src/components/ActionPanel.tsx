@@ -10,6 +10,10 @@ import {
   Wand2,
   SlidersHorizontal,
   FileCode2,
+  Lightbulb,
+  Crosshair,
+  Layers,
+  Trophy
 } from "lucide-react";
 import { ActionRequest, ActionResponse, ActionType, DatasetMetadata, OutputFormat } from "../lib/types";
 import { triggerDataAction } from "../lib/api";
@@ -45,8 +49,8 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
       file_id: fileId,
       action: selectedAction,
       custom_prompt: customPrompt.trim() ? customPrompt.trim() : undefined,
-      target_column: selectedAction === "predict" ? targetColumn : undefined,
-      output_format: selectedAction === "visualize" ? "html" : outputFormat,
+      target_column: (selectedAction === "predict" || selectedAction === "classify" || selectedAction === "automl" || selectedAction === "analyze_all") ? targetColumn : undefined,
+      output_format: selectedAction === "visualize" ? "html" : (selectedAction === "insights" || selectedAction === "automl" ? "json" : outputFormat),
     };
 
     try {
@@ -70,6 +74,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
     icon: React.ReactNode;
     color: string;
     agent: string;
+    special?: boolean;
   }[] = [
     {
       type: "clean",
@@ -95,6 +100,39 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
       color: "from-purple-600/20 to-pink-500/20 border-purple-500/40 text-purple-400",
       agent: "ML Forecaster Agent (Scikit-Learn)",
     },
+    {
+      type: "insights",
+      title: "Find Insights",
+      description: "Discover hidden patterns, anomalies, and statistically significant correlations automatically.",
+      icon: <Lightbulb className="h-5 w-5" />,
+      color: "from-amber-600/20 to-yellow-500/20 border-amber-500/40 text-amber-400",
+      agent: "Analyst Agent (Pandas Profiling)",
+    },
+    {
+      type: "classify",
+      title: "Classify",
+      description: "Train a classification model to categorize data into distinct groups based on features.",
+      icon: <Crosshair className="h-5 w-5" />,
+      color: "from-cyan-600/20 to-sky-500/20 border-cyan-500/40 text-cyan-400",
+      agent: "ML Classifier Agent (XGBoost/Sklearn)",
+    },
+    {
+      type: "automl",
+      title: "AutoML Benchmark",
+      description: "Train 5 competitive models (RandomForest, GradientBoosting, ExtraTrees, etc.), rank on leaderboard, and download winning model.",
+      icon: <Trophy className="h-5 w-5" />,
+      color: "from-amber-500/20 to-orange-500/20 border-amber-500/40 text-amber-300",
+      agent: "AutoML Benchmark Agent (5 ML Models)",
+    },
+    {
+      type: "analyze_all",
+      title: "Analyze Everything",
+      description: "Run a full end-to-end pipeline: clean data, generate visualizations, and train a model.",
+      icon: <Layers className="h-5 w-5" />,
+      color: "from-fuchsia-600/20 to-purple-600/20 border-fuchsia-500/40 text-fuchsia-400",
+      agent: "Supervisor Agent (Orchestrator)",
+      special: true
+    },
   ];
 
   return (
@@ -111,25 +149,30 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
         </div>
       </div>
 
-      {/* 3 Prominent Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 7 Prominent Action Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {actionCards.map((card) => {
           const isSelected = selectedAction === card.type;
+          
+          let cardStyle = isSelected
+            ? `bg-gradient-to-br ${card.color} shadow-lg shadow-indigo-500/5 scale-[1.02]`
+            : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/50";
+            
+          if (card.special && !isSelected) {
+            cardStyle = "bg-slate-950/60 border-fuchsia-500/30 hover:border-fuchsia-500/60 hover:bg-fuchsia-900/10";
+          }
+            
           return (
             <div
               key={card.type}
               onClick={() => !isRunning && setSelectedAction(card.type)}
-              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 flex flex-col justify-between space-y-3 ${
-                isSelected
-                  ? `bg-gradient-to-br ${card.color} shadow-lg shadow-indigo-500/5 scale-[1.02]`
-                  : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/50"
-              } ${isRunning ? "opacity-60 pointer-events-none" : ""}`}
+              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 flex flex-col justify-between space-y-3 ${cardStyle} ${isRunning ? "opacity-60 pointer-events-none" : ""}`}
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div
                     className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-                      isSelected ? "bg-slate-950 text-white" : "bg-slate-800/80 text-slate-300"
+                      isSelected ? "bg-slate-950 text-white" : (card.special ? "bg-fuchsia-500/10 text-fuchsia-400" : "bg-slate-800/80 text-slate-300")
                     }`}
                   >
                     {card.icon}
@@ -137,6 +180,11 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                   {isSelected && (
                     <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-950 text-white border border-slate-700">
                       Active
+                    </span>
+                  )}
+                  {card.special && !isSelected && (
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">
+                      Pro
                     </span>
                   )}
                 </div>
@@ -165,8 +213,8 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* If Predict Action is Selected -> Show Target Column Dropdown */}
-          {selectedAction === "predict" && (
+          {/* If Predict/Classify/AutoML Action is Selected -> Show Target Column Dropdown */}
+          {(selectedAction === "predict" || selectedAction === "classify" || selectedAction === "automl" || selectedAction === "analyze_all") && (
             <div>
               <label className="block text-slate-400 mb-1 font-medium">
                 Target Variable / Prediction Column:
@@ -186,8 +234,8 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
             </div>
           )}
 
-          {/* If Clean/Predict Action is Selected -> Output Format */}
-          {selectedAction !== "visualize" && (
+          {/* Export Format */}
+          {selectedAction !== "visualize" && selectedAction !== "insights" && selectedAction !== "automl" && (
             <div>
               <label className="block text-slate-400 mb-1 font-medium">Export File Format:</label>
               <select
@@ -215,6 +263,8 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                 ? "e.g., 'Drop columns with over 50% missing values and one-hot encode categorical features'"
                 : selectedAction === "visualize"
                 ? "e.g., 'Generate a correlation matrix and scatter plot of Age vs Fare colored by Survived'"
+                : selectedAction === "automl"
+                ? "e.g., 'Benchmark all 5 algorithms and prioritize recall for the minority class'"
                 : "e.g., 'Train a classification model and highlight top 3 feature importances'"
             }
             value={customPrompt}
@@ -246,7 +296,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
             <>
               <Play className="h-4 w-4 fill-white" />
               <span>
-                Run {selectedAction === "clean" ? "Cleaning" : selectedAction === "visualize" ? "Visualization" : "Forecasting"} Pipeline
+                Run Pipeline
               </span>
             </>
           )}

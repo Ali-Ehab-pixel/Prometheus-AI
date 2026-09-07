@@ -8,8 +8,10 @@ class Settings(BaseSettings):
     # LLM Settings (OpenRouter by default)
     OPENROUTER_API_KEY: Optional[str] = Field(default=None)
     OPENROUTER_BASE_URL: str = Field(default="https://openrouter.ai/api/v1")
-    PRIMARY_MODEL: str = Field(default="nvidia/nemotron-3.5-lightning:free")
-    FALLBACK_MODEL: str = Field(default="google/gemma-4-31b-it:free")
+    PRIMARY_MODEL: str = Field(default="nvidia/nemotron-3-super-120b-a12b:free")
+    FALLBACK_MODEL: str = Field(default="nvidia/nemotron-3.5-lightning:free")
+    MAX_UPLOAD_SIZE_MB: int = Field(default=500)
+    VERSION_DIR: str = Field(default="./data/versions")
 
     # Optional Direct Provider Keys
     OPENAI_API_KEY: Optional[str] = Field(default=None)
@@ -49,3 +51,4 @@ settings = Settings()
 # Ensure runtime directories exist
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 os.makedirs(settings.ARTIFACT_DIR, exist_ok=True)
+os.makedirs(settings.VERSION_DIR, exist_ok=True)

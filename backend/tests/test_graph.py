@@ -15,6 +15,18 @@ def test_route_action():
     state_predict: AgentState = {"user_action": "predict", "dataset_metadata": {}, "dataset_schema_str": "", "dataset_filename": "data.csv", "dataset_path": "data.csv", "user_instructions": None, "target_column": "target", "target_format": "csv", "raw_llm_response": None, "generated_code": None, "expected_artifact_path": None, "error": None}
     assert route_action(state_predict) == "ml_forecaster"
 
+    state_insights: AgentState = {"user_action": "insights", "dataset_metadata": {}, "dataset_schema_str": "", "dataset_filename": "data.csv", "dataset_path": "data.csv", "user_instructions": None, "target_column": None, "target_format": "json", "raw_llm_response": None, "generated_code": None, "expected_artifact_path": None, "error": None}
+    assert route_action(state_insights) == "insights"
+
+    state_classify: AgentState = {"user_action": "classify", "dataset_metadata": {}, "dataset_schema_str": "", "dataset_filename": "data.csv", "dataset_path": "data.csv", "user_instructions": None, "target_column": "label", "target_format": "csv", "raw_llm_response": None, "generated_code": None, "expected_artifact_path": None, "error": None}
+    assert route_action(state_classify) == "classifier"
+
+    state_automl: AgentState = {"user_action": "automl", "dataset_metadata": {}, "dataset_schema_str": "", "dataset_filename": "data.csv", "dataset_path": "data.csv", "user_instructions": None, "target_column": "label", "target_format": "json", "raw_llm_response": None, "generated_code": None, "expected_artifact_path": None, "error": None}
+    assert route_action(state_automl) == "automl"
+
+    state_all: AgentState = {"user_action": "analyze_all", "dataset_metadata": {}, "dataset_schema_str": "", "dataset_filename": "data.csv", "dataset_path": "data.csv", "user_instructions": None, "target_column": None, "target_format": "csv", "raw_llm_response": None, "generated_code": None, "expected_artifact_path": None, "error": None}
+    assert route_action(state_all) == "data_engineer"
+
 
 def test_extract_python_code():
     raw_markdown = """Here is the Python script:

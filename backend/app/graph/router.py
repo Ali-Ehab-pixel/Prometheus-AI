@@ -14,6 +14,15 @@ def route_action(state: AgentState) -> str:
         return "visualization"
     elif action in ["predict", "forecast", "predict_and_forecast"]:
         return "ml_forecaster"
+    elif action in ["insights", "find_insights"]:
+        return "insights"
+    elif action in ["classify", "classification"]:
+        return "classifier"
+    elif action in ["automl", "auto_ml", "benchmark", "leaderboard"]:
+        return "automl"
+    elif action in ["analyze_all", "analyze_everything"]:
+        return "data_engineer"  # Multi-phase starts with cleaning
     else:
         # Default fallback
         return "data_engineer"
+

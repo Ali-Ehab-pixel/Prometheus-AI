@@ -58,6 +58,52 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS datasets (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                filename TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                row_count INTEGER,
+                col_count INTEGER,
+                memory_usage_mb REAL,
+                health_score REAL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dataset_versions (
+                id TEXT PRIMARY KEY,
+                file_id TEXT NOT NULL,
+                version_id TEXT NOT NULL,
+                label TEXT NOT NULL,
+                row_count INTEGER,
+                col_count INTEGER,
+                file_path TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analyses (
+                id TEXT PRIMARY KEY,
+                file_id TEXT NOT NULL,
+                user_id TEXT,
+                action TEXT NOT NULL,
+                custom_prompt TEXT,
+                target_column TEXT,
+                success INTEGER NOT NULL,
+                execution_time_seconds REAL,
+                artifact_filename TEXT,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
         conn.commit()
 
 

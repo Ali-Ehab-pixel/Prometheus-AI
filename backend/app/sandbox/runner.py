@@ -9,7 +9,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from app.config import settings
 
@@ -26,6 +26,7 @@ class ExecutionResult:
     artifact_type: Optional[str] = None
     execution_time_seconds: float = 0.0
     error: Optional[str] = None
+    additional_artifacts: Optional[List[Dict[str, Any]]] = None
 
 
 def get_mime_type(filename: str) -> str:
@@ -190,10 +191,24 @@ def run_code_locally_isolated(
         stderr = result.stderr or ""
         success = result.returncode == 0
 
-        # Read back the artifact
+        # Read back all generated artifacts
         artifact_bytes = None
         artifact_filename = None
         artifact_type = None
+
+        ignored_names = {"sandbox_runner.py", dataset_filename, "dataset.csv"}
+        all_artifacts = []
+        for fname in sorted(os.listdir(temp_dir)):
+            if fname not in ignored_names and fname.endswith((".csv", ".xlsx", ".html", ".json", ".png", ".jpg", ".jpeg", ".svg")):
+                fpath = os.path.join(temp_dir, fname)
+                if os.path.isfile(fpath):
+                    with open(fpath, "rb") as f:
+                        b = f.read()
+                    all_artifacts.append({
+                        "filename": fname,
+                        "bytes": b,
+                        "type": Path(fname).suffix.lstrip(".").lower()
+                    })
 
         expected_path = os.path.join(temp_dir, expected_artifact_name)
         if os.path.exists(expected_path):
@@ -201,36 +216,13 @@ def run_code_locally_isolated(
                 artifact_bytes = f.read()
             artifact_filename = expected_artifact_name
             artifact_type = Path(expected_artifact_name).suffix.lstrip(".").lower()
-        else:
-            # Check standard known alternatives
-            for alt_name in [
-                "output_cleaned.csv",
-                "output_cleaned.xlsx",
-                "output_plot.html",
-                "output_predictions.csv",
-                "output_predictions.xlsx",
-                "predictions.csv",
-                "cleaned_data.csv",
-                "plot.html",
-            ]:
-                alt_path = os.path.join(temp_dir, alt_name)
-                if os.path.exists(alt_path):
-                    with open(alt_path, "rb") as f:
-                        artifact_bytes = f.read()
-                    artifact_filename = alt_name
-                    artifact_type = Path(alt_name).suffix.lstrip(".").lower()
-                    break
-            else:
-                # Scan directory for any generated output file (ignoring script & input dataset)
-                ignored_names = {"sandbox_runner.py", dataset_filename, "dataset.csv"}
-                for fname in os.listdir(temp_dir):
-                    if fname not in ignored_names and fname.endswith((".csv", ".xlsx", ".html", ".json")):
-                        fpath = os.path.join(temp_dir, fname)
-                        with open(fpath, "rb") as f:
-                            artifact_bytes = f.read()
-                        artifact_filename = fname
-                        artifact_type = Path(fname).suffix.lstrip(".").lower()
-                        break
+        elif all_artifacts:
+            # Pick first artifact matching expected extension or first one found
+            ext = Path(expected_artifact_name).suffix.lstrip(".").lower()
+            matching = next((a for a in all_artifacts if a["type"] == ext), all_artifacts[0])
+            artifact_bytes = matching["bytes"]
+            artifact_filename = matching["filename"]
+            artifact_type = matching["type"]
 
         error_msg = stderr if not success else None
 
@@ -243,6 +235,7 @@ def run_code_locally_isolated(
             artifact_type=artifact_type,
             execution_time_seconds=round(time.time() - start_time, 2),
             error=error_msg,
+            additional_artifacts=all_artifacts,
         )
 
     except subprocess.TimeoutExpired:
