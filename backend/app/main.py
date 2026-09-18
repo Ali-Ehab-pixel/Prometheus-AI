@@ -1,13 +1,16 @@
+import hashlib
+import json
 import logging
 import os
 import shutil
 import uuid
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from app.auth import router as auth_router, get_current_user, require_subscription, decrement_free_uses, get_optional_user
 from app.admin import router as admin_router
@@ -88,6 +91,44 @@ app.include_router(subscription_router)
 FILE_REGISTRY: Dict[str, Dict] = {}
 ARTIFACT_REGISTRY: Dict[str, Dict] = {}
 version_manager = DatasetVersionManager(base_dir=settings.VERSION_DIR)
+
+
+# ==================== Code Generation Cache ====================
+
+class CodeCache:
+    """LRU cache for LLM-generated code. Key = hash(action + schema_str)."""
+
+    def __init__(self, max_size: int = 50):
+        self._cache: OrderedDict = OrderedDict()
+        self._max_size = max_size
+
+    def _make_key(self, action: str, schema_str: str) -> str:
+        raw = f"{action}:{schema_str}"
+        return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+    def get(self, action: str, schema_str: str):
+        key = self._make_key(action, schema_str)
+        if key in self._cache:
+            self._cache.move_to_end(key)
+            return self._cache[key]
+        return None
+
+    def put(self, action: str, schema_str: str, generated_code: str, expected_artifact: str):
+        key = self._make_key(action, schema_str)
+        self._cache[key] = {
+            "generated_code": generated_code,
+            "expected_artifact_path": expected_artifact,
+        }
+        self._cache.move_to_end(key)
+        if len(self._cache) > self._max_size:
+            self._cache.popitem(last=False)
+
+    def invalidate(self, action: str, schema_str: str):
+        key = self._make_key(action, schema_str)
+        self._cache.pop(key, None)
+
+
+code_cache = CodeCache(max_size=50)
 
 
 # ==================== Health Check ====================
@@ -326,15 +367,25 @@ async def run_data_action(
     }
 
     try:
-        # 1. Run LangGraph workflow
-        logger.info(f"Invoking LangGraph for action='{action_request.action.value}', file='{dataset_filename}'")
-        final_state = analysis_graph.invoke(initial_state)
+        # 1. Check code cache first
+        cached = code_cache.get(action_request.action.value, schema_str)
+        if cached:
+            logger.info(f"Cache HIT for action='{action_request.action.value}', file='{dataset_filename}'")
+            generated_code = cached["generated_code"]
+            expected_artifact = cached["expected_artifact_path"]
+        else:
+            # Run LangGraph workflow (cache miss)
+            logger.info(f"Cache MISS — Invoking LangGraph for action='{action_request.action.value}', file='{dataset_filename}'")
+            final_state = analysis_graph.invoke(initial_state)
 
-        generated_code = final_state.get("generated_code")
-        if not generated_code:
-            raise ValueError("LLM did not generate executable Python code.")
+            generated_code = final_state.get("generated_code")
+            if not generated_code:
+                raise ValueError("LLM did not generate executable Python code.")
 
-        expected_artifact = final_state.get("expected_artifact_path") or f"output.{target_format}"
+            expected_artifact = final_state.get("expected_artifact_path") or f"output.{target_format}"
+
+            # Store in cache
+            code_cache.put(action_request.action.value, schema_str, generated_code, expected_artifact)
 
         # 2. Execute script in Sandbox
         logger.info(f"Executing script in sandbox for {expected_artifact}...")
@@ -344,6 +395,10 @@ async def run_data_action(
             dataset_filename=dataset_filename,
             expected_artifact_name=expected_artifact,
         )
+
+        # Invalidate cache on execution failure so next attempt regenerates code
+        if not exec_result.success:
+            code_cache.invalidate(action_request.action.value, schema_str)
 
         artifact_info = None
         insights_data = None
@@ -456,7 +511,7 @@ async def run_data_action(
 
                 if cleaned_df is not None:
                     # Save version snapshot
-                    label = f"Cleaned ({action_request.custom_prompt[:25]}...)" if action_request.custom_prompt else "Cleaned & Transformed"
+                    label = "Cleaned & Transformed"
                     v_meta = version_manager.save_version(file_id, cleaned_df, label)
                     version_saved = v_meta["version_id"]
 
@@ -492,7 +547,7 @@ async def run_data_action(
                         file_id,
                         current_user.id,
                         action_request.action.value,
-                        action_request.custom_prompt,
+                        None,
                         action_request.target_column,
                         1 if exec_result.success else 0,
                         exec_result.execution_time_seconds,
@@ -540,6 +595,221 @@ async def run_data_action(
             execution_time_seconds=0.0,
             error=str(e),
         )
+
+
+@app.post("/api/action/stream")
+@limiter.limit(settings.RATE_LIMIT_ACTION)
+async def run_data_action_stream(
+    request: Request,
+    action_request: ActionRequest,
+    current_user: UserProfileResponse = Depends(require_subscription),
+):
+    """
+    SSE streaming version of /api/action.
+    Streams progress events during code generation and sandbox execution.
+    """
+    file_id = action_request.file_id
+    if file_id not in FILE_REGISTRY:
+        raise HTTPException(status_code=404, detail="Dataset not found. Please re-upload the file.")
+
+    def event_generator():
+        session_data = FILE_REGISTRY[file_id]
+        metadata_obj: DatasetMetadata = session_data["metadata"]
+        dataset_path = session_data["file_path"]
+        dataset_filename = session_data["original_filename"]
+
+        target_format = "csv"
+        if action_request.action == ActionType.VISUALIZE:
+            target_format = "html"
+        elif action_request.action == ActionType.INSIGHTS:
+            target_format = "json"
+        elif action_request.output_format:
+            target_format = action_request.output_format.value
+
+        schema_str = format_schema_for_llm(metadata_obj)
+
+        try:
+            # Stage 1: Code generation
+            cached = code_cache.get(action_request.action.value, schema_str)
+            if cached:
+                yield f"event: progress\ndata: {json.dumps({'stage': 'code_ready', 'message': 'Code generated (cached — skipping AI)', 'cached': True})}\n\n"
+                generated_code = cached["generated_code"]
+                expected_artifact = cached["expected_artifact_path"]
+            else:
+                yield f"event: progress\ndata: {json.dumps({'stage': 'generating_code', 'message': 'Generating Python code with AI...'})}\n\n"
+
+                initial_state: AgentState = {
+                    "user_action": action_request.action.value,
+                    "dataset_metadata": metadata_obj.model_dump(),
+                    "dataset_schema_str": schema_str,
+                    "dataset_filename": dataset_filename,
+                    "dataset_path": dataset_filename,
+                    "user_instructions": None,
+                    "target_column": action_request.target_column,
+                    "target_format": target_format,
+                    "raw_llm_response": None,
+                    "generated_code": None,
+                    "expected_artifact_path": None,
+                    "error": None,
+                }
+
+                final_state = analysis_graph.invoke(initial_state)
+                generated_code = final_state.get("generated_code")
+                if not generated_code:
+                    error_resp = ActionResponse(
+                        success=False, action=action_request.action, generated_code="",
+                        stdout="", stderr="LLM did not generate executable Python code.",
+                        artifact=None, execution_time_seconds=0.0,
+                        error="LLM did not generate executable Python code.",
+                    )
+                    yield f"event: complete\ndata: {json.dumps(error_resp.model_dump())}\n\n"
+                    return
+
+                expected_artifact = final_state.get("expected_artifact_path") or f"output.{target_format}"
+                code_cache.put(action_request.action.value, schema_str, generated_code, expected_artifact)
+
+                yield f"event: progress\ndata: {json.dumps({'stage': 'code_ready', 'message': 'Python code generated successfully', 'cached': False})}\n\n"
+
+            # Stage 2: Sandbox execution
+            yield f"event: progress\ndata: {json.dumps({'stage': 'executing', 'message': 'Executing in sandbox...'})}\n\n"
+
+            exec_result = execute_script_in_sandbox(
+                code=generated_code,
+                dataset_path=dataset_path,
+                dataset_filename=dataset_filename,
+                expected_artifact_name=expected_artifact,
+            )
+
+            if not exec_result.success:
+                code_cache.invalidate(action_request.action.value, schema_str)
+
+            # Stage 3: Processing artifacts
+            yield f"event: progress\ndata: {json.dumps({'stage': 'processing', 'message': 'Processing results and artifacts...'})}\n\n"
+
+            artifact_info = None
+            insights_data = None
+            version_saved = None
+            artifacts_list = []
+
+            if exec_result.additional_artifacts:
+                for item in exec_result.additional_artifacts:
+                    art_id = str(uuid.uuid4())
+                    art_name = f"{art_id}_{item['filename']}"
+                    art_path = os.path.join(settings.ARTIFACT_DIR, art_name)
+                    with open(art_path, "wb") as f:
+                        f.write(item["bytes"])
+                    m_type = get_mime_type(item["filename"])
+                    ARTIFACT_REGISTRY[art_id] = {"file_path": art_path, "filename": item["filename"], "mime_type": m_type}
+                    h_content = None
+                    if item["type"] == "html":
+                        try: h_content = item["bytes"].decode("utf-8")
+                        except Exception: pass
+                    if item["filename"].endswith(".json"):
+                        try:
+                            parsed_json = json.loads(item["bytes"].decode("utf-8"))
+                            if action_request.action == ActionType.INSIGHTS or "insights" in parsed_json:
+                                insights_data = parsed_json
+                        except Exception: pass
+                    a_info = ArtifactInfo(
+                        filename=item["filename"], file_type=item["type"], mime_type=m_type,
+                        size_bytes=len(item["bytes"]), download_url=f"/api/artifacts/{art_id}", html_content=h_content,
+                    )
+                    artifacts_list.append(a_info)
+                    if item["filename"] == exec_result.artifact_filename or artifact_info is None:
+                        artifact_info = a_info
+            elif exec_result.artifact_bytes and exec_result.artifact_filename:
+                artifact_id = str(uuid.uuid4())
+                saved_artifact_name = f"{artifact_id}_{exec_result.artifact_filename}"
+                saved_artifact_path = os.path.join(settings.ARTIFACT_DIR, saved_artifact_name)
+                with open(saved_artifact_path, "wb") as f:
+                    f.write(exec_result.artifact_bytes)
+                mime_type = get_mime_type(exec_result.artifact_filename)
+                ARTIFACT_REGISTRY[artifact_id] = {"file_path": saved_artifact_path, "filename": exec_result.artifact_filename, "mime_type": mime_type}
+                html_content = None
+                if exec_result.artifact_type == "html":
+                    try: html_content = exec_result.artifact_bytes.decode("utf-8")
+                    except Exception: html_content = None
+                if exec_result.artifact_filename.endswith(".json"):
+                    try:
+                        parsed_json = json.loads(exec_result.artifact_bytes.decode("utf-8"))
+                        if action_request.action == ActionType.INSIGHTS or "insights" in parsed_json:
+                            insights_data = parsed_json
+                    except Exception: insights_data = None
+                artifact_info = ArtifactInfo(
+                    filename=exec_result.artifact_filename, file_type=exec_result.artifact_type or "file",
+                    mime_type=mime_type, size_bytes=len(exec_result.artifact_bytes),
+                    download_url=f"/api/artifacts/{artifact_id}", html_content=html_content,
+                )
+                artifacts_list.append(artifact_info)
+
+            # Post-clean auto-versioning
+            if exec_result.success and action_request.action == ActionType.CLEAN and exec_result.artifact_bytes:
+                try:
+                    import io
+                    import pandas as pd
+                    if exec_result.artifact_filename.endswith(".csv"):
+                        cleaned_df = pd.read_csv(io.BytesIO(exec_result.artifact_bytes))
+                    elif exec_result.artifact_filename.endswith((".xlsx", ".xls")):
+                        cleaned_df = pd.read_excel(io.BytesIO(exec_result.artifact_bytes))
+                    else:
+                        cleaned_df = None
+                    if cleaned_df is not None:
+                        label = "Cleaned & Transformed"
+                        v_meta = version_manager.save_version(file_id, cleaned_df, label)
+                        version_saved = v_meta["version_id"]
+                        cleaned_df.to_csv(dataset_path, index=False)
+                        new_metadata = parse_file(dataset_path, dataset_filename)[1]
+                        new_profile = profile_dataset(cleaned_df, dataset_filename)
+                        new_health = calculate_health_score(new_profile)
+                        new_recs = generate_recommendations(new_profile, new_health)
+                        session_data["metadata"] = new_metadata
+                        session_data["profile"] = new_profile
+                        session_data["health_score"] = new_health
+                        session_data["recommendations"] = new_recs
+                except Exception as ve:
+                    logger.warning(f"Failed to auto-version: {ve}")
+
+            # Log to SQLite
+            try:
+                from app.auth import get_db
+                import datetime
+                with get_db() as conn:
+                    conn.execute(
+                        "INSERT INTO analyses (id, file_id, user_id, action, custom_prompt, target_column, success, execution_time_seconds, artifact_filename, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (str(uuid.uuid4()), file_id, current_user.id, action_request.action.value, None, action_request.target_column, 1 if exec_result.success else 0, exec_result.execution_time_seconds, exec_result.artifact_filename, datetime.datetime.now().isoformat()),
+                    )
+                    conn.execute("UPDATE users SET analyses_performed = analyses_performed + 1 WHERE id = ?", (current_user.id,))
+                    conn.commit()
+                if exec_result.success:
+                    decrement_free_uses(current_user.id)
+            except Exception as le:
+                logger.warning(f"Failed to log analysis: {le}")
+
+            # Stage 4: Complete
+            final_response = ActionResponse(
+                success=exec_result.success,
+                action=action_request.action,
+                generated_code=generated_code,
+                stdout=exec_result.stdout,
+                stderr=exec_result.stderr,
+                artifact=artifact_info,
+                artifacts=artifacts_list,
+                execution_time_seconds=exec_result.execution_time_seconds,
+                insights_data=insights_data,
+                version_saved=version_saved,
+                error=exec_result.error,
+            )
+            yield f"event: complete\ndata: {json.dumps(final_response.model_dump())}\n\n"
+
+        except Exception as e:
+            logger.error(f"Streaming action error: {e}", exc_info=True)
+            error_resp = ActionResponse(
+                success=False, action=action_request.action, generated_code="",
+                stdout="", stderr=str(e), artifact=None, execution_time_seconds=0.0, error=str(e),
+            )
+            yield f"event: complete\ndata: {json.dumps(error_resp.model_dump())}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.get("/api/artifacts/{artifact_id}")

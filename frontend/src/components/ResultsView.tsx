@@ -20,6 +20,7 @@ import {
   Lightbulb,
   BookmarkCheck,
   FileJson,
+  TrendingUp,
 } from "lucide-react";
 import { ActionResponse, ColumnInfo } from "../lib/types";
 import { getArtifactDownloadUrl } from "../lib/api";

@@ -9,10 +9,11 @@ import {
   Wand2,
   SlidersHorizontal,
   FileCode2,
-  Lightbulb
+  Lightbulb,
+  Zap
 } from "lucide-react";
-import { ActionRequest, ActionResponse, ActionType, DatasetMetadata, OutputFormat } from "../lib/types";
-import { triggerDataAction } from "../lib/api";
+import { ActionRequest, ActionResponse, ActionType, DatasetMetadata, OutputFormat, StreamProgressEvent } from "../lib/types";
+import { triggerDataAction, triggerDataActionStream } from "../lib/api";
 
 interface ActionPanelProps {
   fileId: string;
@@ -33,11 +34,13 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
 }) => {
   const [selectedAction, setSelectedAction] = useState<ActionType>("clean");
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("csv");
+  const [progressStage, setProgressStage] = useState<StreamProgressEvent | null>(null);
 
   const handleExecute = async () => {
     if (isRunning) return;
 
     onActionStart(selectedAction);
+    setProgressStage(null);
 
     const payload: ActionRequest = {
       file_id: fileId,
@@ -46,18 +49,24 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
       output_format: selectedAction === "visualize" ? "html" : (selectedAction === "insights" ? "json" : outputFormat),
     };
 
-    try {
-      const res = await triggerDataAction(payload);
-      if (res.success) {
-        onActionSuccess(res);
-      } else {
-        onActionError(res.error || "Action execution failed in sandbox.");
-      }
-    } catch (err: any) {
-      console.error("Action execution error:", err);
-      const detail = err.response?.data?.detail || err.message || "Failed to execute action.";
-      onActionError(detail);
-    }
+    await triggerDataActionStream(
+      payload,
+      (progress) => {
+        setProgressStage(progress);
+      },
+      (response) => {
+        setProgressStage(null);
+        if (response.success) {
+          onActionSuccess(response);
+        } else {
+          onActionError(response.error || "Action execution failed in sandbox.");
+        }
+      },
+      (error) => {
+        setProgressStage(null);
+        onActionError(error);
+      },
+    );
   };
 
   const actionCards: {
@@ -184,6 +193,25 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
               <option value="xlsx">Excel (.xlsx)</option>
             </select>
           </div>
+        </div>
+      )}
+
+      {/* Live Progress Indicator */}
+      {isRunning && progressStage && (
+        <div className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-sm">
+          <div className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+          </div>
+          <span className="text-indigo-300 font-medium text-xs">
+            {progressStage.message}
+          </span>
+          {progressStage.cached && (
+            <span className="flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Zap className="h-3 w-3" />
+              <span>Cached</span>
+            </span>
+          )}
         </div>
       )}
 

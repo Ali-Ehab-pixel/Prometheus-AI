@@ -2,6 +2,7 @@ import axios from "axios";
 import {
   ActionRequest,
   ActionResponse,
+  StreamProgressEvent,
   AuthResponse,
   HealthStatus,
   LoginCredentials,
@@ -109,6 +110,72 @@ export async function uploadDatasetFile(file: File): Promise<UploadResponse> {
 export async function triggerDataAction(payload: ActionRequest): Promise<ActionResponse> {
   const res = await api.post<ActionResponse>("/api/action", payload);
   return res.data;
+}
+
+export async function triggerDataActionStream(
+  payload: ActionRequest,
+  onProgress: (event: StreamProgressEvent) => void,
+  onComplete: (response: ActionResponse) => void,
+  onError: (error: string) => void,
+): Promise<void> {
+  const token = typeof window !== "undefined" ? sessionStorage.getItem("datamorph_auth_token") : null;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/action/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+      onError(errorData.detail || `HTTP ${response.status}`);
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      onError("Streaming not supported by browser.");
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      let currentEventType = "";
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          currentEventType = line.slice(7).trim();
+        } else if (line.startsWith("data: ")) {
+          const dataStr = line.slice(6);
+          try {
+            const parsed = JSON.parse(dataStr);
+            if (currentEventType === "progress") {
+              onProgress(parsed as StreamProgressEvent);
+            } else if (currentEventType === "complete") {
+              onComplete(parsed as ActionResponse);
+            }
+          } catch (e) {
+            console.warn("Failed to parse SSE data:", dataStr);
+          }
+          currentEventType = "";
+        }
+      }
+    }
+  } catch (err: any) {
+    onError(err.message || "Stream connection failed.");
+  }
 }
 
 export function getArtifactDownloadUrl(downloadPath?: string): string {

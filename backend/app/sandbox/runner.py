@@ -138,7 +138,7 @@ def run_code_locally_isolated(
     dataset_path: str,
     dataset_filename: str,
     expected_artifact_name: str,
-    timeout: int = 60,
+    timeout: int = 120,
 ) -> ExecutionResult:
     """
     Executes Python script in an isolated temporary directory using subprocess with timeout.

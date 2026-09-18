@@ -82,6 +82,70 @@ export interface ActionResponse {
   error?: string;
 }
 
+export interface StreamProgressEvent {
+  stage: "generating_code" | "code_ready" | "executing" | "processing" | "complete";
+  message: string;
+  cached?: boolean;
+}
+
+export interface ModelLeaderboardItem {
+  name: string;
+  model_name?: string;
+  task_type?: string;
+  fit_time_seconds?: number;
+  accuracy?: number;
+  f1_score?: number;
+  precision?: number;
+  recall?: number;
+  rmse?: number;
+  mae?: number;
+  r2_score?: number;
+  primary_metric_value?: number;
+  secondary_metric_name?: string;
+  secondary_metric_value?: number;
+  is_winner?: boolean;
+  [key: string]: any;
+}
+
+export interface LeaderboardData {
+  task_type?: string;
+  target_column?: string;
+  best_model?: string;
+  metric_used?: string;
+  primary_metric_name?: string;
+  models: ModelLeaderboardItem[];
+  [key: string]: any;
+}
+
+export interface FeatureImportanceItem {
+  feature: string;
+  importance: number;
+  raw_score: number;
+  direction?: string;
+}
+
+export interface ExplainabilityData {
+  target_column: string;
+  method: string;
+  summary: string;
+  top_features: FeatureImportanceItem[];
+}
+
+export interface PredictWhatIfRequest {
+  file_id?: string;
+  features: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface PredictWhatIfResponse {
+  success: boolean;
+  prediction?: any;
+  confidence?: number;
+  probabilities?: Record<string, number>;
+  task_type?: string;
+  error?: string;
+}
+
 export interface HealthStatus {
   status: string;
   llm_provider: string;
