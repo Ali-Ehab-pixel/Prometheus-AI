@@ -349,7 +349,7 @@ export default function Home() {
         <footer className="border-t border-slate-900 bg-slate-950/80 py-6 px-6 mt-12 text-xs text-slate-500">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <span className="font-semibold text-slate-400">DataMorph AI</span>
+              <span className="font-semibold text-slate-400">Prometheus AI</span>
               <span>•</span>
               <span className="flex items-center space-x-1">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />

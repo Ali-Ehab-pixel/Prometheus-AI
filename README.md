@@ -1,6 +1,6 @@
-# AI Data Analyst Platform 📊🤖
+# Prometheus AI 📊🤖
 
-An autonomous, full-stack **AI Data Analyst Platform** orchestrated with **LangGraph**, powered by **OpenRouter** (`nvidia/nemotron-3.5-lightning:free` with automatic fallback to `google/gemma-4-31b-it:free`), and executed safely inside an isolated **E2B Sandbox** (with local subprocess fallback).
+An autonomous, full-stack **AI Data Scientist Platform** orchestrated with **LangGraph**, powered by **OpenRouter**, featuring SSE response streaming, LRU code caching, and executed safely inside an isolated sandbox.
 
 ---
 

@@ -68,7 +68,7 @@ export default function LoginPage() {
               </div>
             </div>
             <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
-              DataMorph AI
+              Prometheus AI
             </span>
           </Link>
           <h2 className="text-2xl font-bold tracking-tight text-white pt-2">Welcome Back</h2>

@@ -41,7 +41,7 @@ export default function TermsAndConditionsPage() {
             </div>
             <div>
               <span className="font-bold text-base tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                DataMorph AI
+                Prometheus AI
               </span>
               <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 Terms of Service
@@ -83,8 +83,8 @@ export default function TermsAndConditionsPage() {
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed pt-2">
             These Terms &amp; Conditions constitute a legally binding contract between you
-            (&ldquo;User&rdquo;, &ldquo;Subscriber&rdquo;, or &ldquo;you&rdquo;) and DataMorph AI
-            (&ldquo;DataMorph AI&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;).
+            (&ldquo;User&rdquo;, &ldquo;Subscriber&rdquo;, or &ldquo;you&rdquo;) and Prometheus AI
+            (&ldquo;Prometheus AI&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;).
             Please read these terms carefully before accessing or using our autonomous analytics platform.
           </p>
         </div>
@@ -142,7 +142,7 @@ export default function TermsAndConditionsPage() {
             <h2 className="text-lg font-bold text-white">1. Acceptance of Terms</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            By registering for an account, accessing, browsing, or utilizing the DataMorph AI
+            By registering for an account, accessing, browsing, or utilizing the Prometheus AI
             application, you acknowledge that you have read, understood, and agreed to be legally
             bound by these Terms &amp; Conditions and our{" "}
             <Link href="/privacy" className="text-indigo-400 hover:text-indigo-300 underline font-semibold">
@@ -161,14 +161,14 @@ export default function TermsAndConditionsPage() {
             <h2 className="text-lg font-bold text-white">2. Description of Service</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            DataMorph AI is an autonomous, AI-powered data science platform. Our service orchestrates
+            Prometheus AI is an autonomous, AI-powered data science platform. Our service orchestrates
             automated data profiling, missing value imputation, algorithmic cleaning, interactive Plotly
             visualizations, AutoML model selection, feature importance evaluation, and conversational
             copilot guidance. Code execution runs in isolated cloud microVM sandbox environments
             (powered by E2B or dedicated isolation containers).
           </p>
           <p className="text-xs text-slate-400 leading-relaxed">
-            We continuously refine and improve our analytics engine. Consequently, DataMorph AI
+            We continuously refine and improve our analytics engine. Consequently, Prometheus AI
             reserves the right to update, modify, or enhance system capabilities, models, and interfaces
             at its reasonable discretion.
           </p>
@@ -188,7 +188,7 @@ export default function TermsAndConditionsPage() {
             <li>Maintaining the absolute confidentiality of your login credentials and passwords.</li>
             <li>All activities and data processing jobs initiated through your authenticated account.</li>
             <li>
-              Promptly notifying DataMorph AI at <code className="text-indigo-300">support@datamorph.ai</code> if
+              Promptly notifying Prometheus AI at <code className="text-indigo-300">support@datamorph.ai</code> if
               you suspect any breach of security or unauthorized account use.
             </li>
           </ul>
@@ -207,7 +207,7 @@ export default function TermsAndConditionsPage() {
                 A. Pricing &amp; Currency
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                DataMorph AI offers recurring subscription tiers denominated in Egyptian Pounds (EGP):
+                Prometheus AI offers recurring subscription tiers denominated in Egyptian Pounds (EGP):
               </p>
               <ul className="text-xs text-slate-300 list-disc list-inside space-y-1 marker:text-indigo-400">
                 <li>
@@ -226,7 +226,7 @@ export default function TermsAndConditionsPage() {
                 B. Automated Billing &amp; Invoicing
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                By purchasing a subscription, you authorize DataMorph AI (and its authorized payment
+                By purchasing a subscription, you authorize Prometheus AI (and its authorized payment
                 gateways) to automatically charge your designated payment method for the applicable fee on
                 each recurring renewal date unless cancelled prior to renewal.
               </p>
@@ -254,7 +254,7 @@ export default function TermsAndConditionsPage() {
             <h2 className="text-lg font-bold text-white">5. Free Trial Policy</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            DataMorph AI provides new registered users with{" "}
+            Prometheus AI provides new registered users with{" "}
             <strong className="text-white">one (1) free analysis session</strong>.
           </p>
           <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-slate-200 space-y-1.5">
@@ -279,7 +279,7 @@ export default function TermsAndConditionsPage() {
             <h2 className="text-lg font-bold text-white">6. Acceptable Use</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            You agree to use DataMorph AI exclusively for lawful data science, business intelligence,
+            You agree to use Prometheus AI exclusively for lawful data science, business intelligence,
             and computational analytics purposes. You must NOT:
           </p>
           <ul className="space-y-1.5 text-xs sm:text-sm text-slate-300 list-disc list-inside marker:text-rose-400">
@@ -291,7 +291,7 @@ export default function TermsAndConditionsPage() {
               Attempt to probe, scan, breach, or escape sandbox container virtualizations or backend APIs.
             </li>
             <li>
-              Reverse engineer, decompile, disassemble, or derive the source code of the DataMorph AI
+              Reverse engineer, decompile, disassemble, or derive the source code of the Prometheus AI
               proprietary workflow engines.
             </li>
             <li>
@@ -299,7 +299,7 @@ export default function TermsAndConditionsPage() {
               violation of intellectual property or privacy statutes.
             </li>
             <li>
-              Resell, redistribute, or create automated proxies of DataMorph AI without prior written
+              Resell, redistribute, or create automated proxies of Prometheus AI without prior written
               authorization.
             </li>
           </ul>
@@ -323,11 +323,11 @@ export default function TermsAndConditionsPage() {
             </div>
 
             <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5">
-              <h3 className="text-xs sm:text-sm font-semibold text-indigo-300">DataMorph AI Property</h3>
+              <h3 className="text-xs sm:text-sm font-semibold text-indigo-300">Prometheus AI Property</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                The DataMorph AI name, logos, UI designs, LangGraph workflows, frontend components,
+                The Prometheus AI name, logos, UI designs, LangGraph workflows, frontend components,
                 algorithms, documentation, and underlying proprietary software remain the exclusive
-                intellectual property of DataMorph AI.
+                intellectual property of Prometheus AI.
               </p>
             </div>
           </div>
@@ -344,7 +344,7 @@ export default function TermsAndConditionsPage() {
             <Link href="/privacy" className="text-indigo-400 hover:text-indigo-300 underline font-semibold">
               Privacy Policy
             </Link>
-            , DataMorph AI guarantees that{" "}
+            , Prometheus AI guarantees that{" "}
             <strong className="text-white">We Do Not Review Your Data</strong>. We do not inspect,
             audit, analyze, or share any datasets uploaded by users, nor do we employ user datasets to
             train public AI foundation models. Please review the full{" "}
@@ -362,13 +362,13 @@ export default function TermsAndConditionsPage() {
             <h2 className="text-lg font-bold text-white">9. Limitation of Liability</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            To the maximum extent permitted by applicable law, in no event shall DataMorph AI, its
+            To the maximum extent permitted by applicable law, in no event shall Prometheus AI, its
             founders, directors, or employees be liable for any indirect, punitive, incidental,
             special, or consequential damages (including loss of business profits, data corruption, or
             operational downtime) arising out of or in connection with the use or inability to use the
             platform, even if advised of the possibility of such damages. In all circumstances,
-            DataMorph AI&rsquo;s aggregate liability shall not exceed the total fees paid by you to
-            DataMorph AI during the preceding twelve (12) months.
+            Prometheus AI&rsquo;s aggregate liability shall not exceed the total fees paid by you to
+            Prometheus AI during the preceding twelve (12) months.
           </p>
         </section>
 
@@ -379,7 +379,7 @@ export default function TermsAndConditionsPage() {
             <h2 className="text-lg font-bold text-white">10. Disclaimer of Warranties</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            DataMorph AI is provided on an &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; basis
+            Prometheus AI is provided on an &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; basis
             without warranties of any kind, whether express or implied. Machine learning predictions,
             automated cleaning suggestions, and AI copilot interpretations are computational estimates
             and should not be treated as formal financial, medical, or legal counsel. You bear sole
@@ -395,7 +395,7 @@ export default function TermsAndConditionsPage() {
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             You may terminate your account at any time by requesting deletion or discontinuing use.
-            DataMorph AI reserves the right to suspend or terminate access immediately, without prior
+            Prometheus AI reserves the right to suspend or terminate access immediately, without prior
             notice, if you breach any term of this agreement (including fraudulent payments, sandbox
             abuse, or malicious actions). Upon termination, your right to use the platform ceases
             immediately.
@@ -410,7 +410,7 @@ export default function TermsAndConditionsPage() {
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             These Terms &amp; Conditions, and any disputes, claims, or controversies arising out of or
-            relating to your use of DataMorph AI, shall be governed by, interpreted, and construed in
+            relating to your use of Prometheus AI, shall be governed by, interpreted, and construed in
             accordance with the <strong className="text-white">Laws of the Arab Republic of Egypt</strong>.
             Any legal dispute shall be submitted to the exclusive jurisdiction of the competent courts of
             Cairo, Egypt.
@@ -430,7 +430,7 @@ export default function TermsAndConditionsPage() {
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
             <div className="space-y-1 text-xs">
-              <p className="font-semibold text-slate-200">DataMorph AI Legal Affairs</p>
+              <p className="font-semibold text-slate-200">Prometheus AI Legal Affairs</p>
               <p className="text-slate-400">Email: legal@datamorph.ai &bull; Cairo, Egypt</p>
             </div>
             <Link
@@ -461,7 +461,7 @@ export default function TermsAndConditionsPage() {
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <Sparkles className="h-4 w-4 text-indigo-400" />
-            <span className="font-semibold text-slate-400">DataMorph AI Platform</span>
+            <span className="font-semibold text-slate-400">Prometheus AI Platform</span>
             <span>&bull;</span>
             <span>Terms &amp; Conditions</span>
           </div>
@@ -479,7 +479,7 @@ export default function TermsAndConditionsPage() {
           </div>
         </div>
         <div className="max-w-4xl mx-auto mt-3 text-center sm:text-left text-[11px] text-slate-600">
-          &copy; 2026 DataMorph AI. All rights reserved. Last updated September 2026.
+          &copy; 2026 Prometheus AI. All rights reserved. Last updated September 2026.
         </div>
       </footer>
     </div>

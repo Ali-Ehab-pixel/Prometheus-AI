@@ -52,7 +52,7 @@ logging.basicConfig(
 logger = logging.getLogger("ai_data_analyst")
 
 app = FastAPI(
-    title="AI Data Scientist Platform API",
+    title="Prometheus AI Platform API",
     description="Backend orchestration with LangGraph, OpenRouter, and E2B Sandbox Execution",
     version="2.0.0",
     docs_url="/api/docs" if settings.ENVIRONMENT == "development" else None,

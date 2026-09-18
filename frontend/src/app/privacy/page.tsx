@@ -42,7 +42,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <div>
               <span className="font-bold text-base tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                DataMorph AI
+                Prometheus AI
               </span>
               <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 Legal
@@ -79,11 +79,11 @@ export default function PrivacyPolicyPage() {
               <span>Last updated: September 2026</span>
             </span>
             <span>•</span>
-            <span className="text-indigo-400 font-medium">Applicable to all DataMorph AI users</span>
+            <span className="text-indigo-400 font-medium">Applicable to all Prometheus AI users</span>
           </div>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed pt-2">
-            At DataMorph AI, your privacy and analytical autonomy are our highest priorities. This
+            At Prometheus AI, your privacy and analytical autonomy are our highest priorities. This
             Privacy Policy explains how we collect, handle, store, and protect your personal
             information and outlines our strict commitment to safeguarding your proprietary datasets.
           </p>
@@ -107,7 +107,7 @@ export default function PrivacyPolicyPage() {
                 We Do Not Review Your Data
               </h2>
               <p className="text-sm sm:text-base text-indigo-100/90 font-medium leading-relaxed">
-                DataMorph AI does not access, review, analyze, or share any datasets uploaded by
+                Prometheus AI does not access, review, analyze, or share any datasets uploaded by
                 users. Your data remains entirely yours.
               </p>
 
@@ -152,10 +152,10 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-lg font-bold text-white">1. Introduction</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            DataMorph AI (&ldquo;DataMorph AI&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;)
+            Prometheus AI (&ldquo;Prometheus AI&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;)
             provides an autonomous AI-assisted data science and analytics platform. This Privacy Policy
             governs your use of our web application, tools, APIs, and associated services. By
-            creating an account, uploading data, or utilizing DataMorph AI, you acknowledge and agree
+            creating an account, uploading data, or utilizing Prometheus AI, you acknowledge and agree
             to the terms set forth in this policy.
           </p>
         </section>
@@ -202,7 +202,7 @@ export default function PrivacyPolicyPage() {
               <p className="text-xs text-slate-300 leading-relaxed">
                 When you upload a dataset (such as CSV, XLSX, or Parquet), the file is placed into an
                 isolated sandbox environment solely to perform user-instructed actions. As emphasized
-                above, DataMorph AI treats your datasets as strictly confidential payloads and never
+                above, Prometheus AI treats your datasets as strictly confidential payloads and never
                 inspects or reads their content outside of your explicit computational requests.
               </p>
             </div>
@@ -293,7 +293,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-lg font-bold text-white">5. Cookies & Local Storage</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            DataMorph AI uses essential cookies and local browser storage strictly for session
+            Prometheus AI uses essential cookies and local browser storage strictly for session
             management, authentication token persistence, and user preferences (such as dark mode theme
             settings and copilot view preferences).
           </p>
@@ -371,7 +371,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-lg font-bold text-white">8. Data Retention</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            We retain your account profile as long as your DataMorph AI account is active. Uploaded
+            We retain your account profile as long as your Prometheus AI account is active. Uploaded
             datasets and sandbox artifacts are subject to our ephemeral data lifecycle: temporary sandbox
             scratch files are automatically destroyed following session completion or after 24 hours of
             inactivity unless explicitly saved to your persistent history. You may permanently clear
@@ -406,7 +406,7 @@ export default function PrivacyPolicyPage() {
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
             <div className="space-y-1 text-xs">
-              <p className="font-semibold text-slate-200">DataMorph AI Privacy & Compliance Office</p>
+              <p className="font-semibold text-slate-200">Prometheus AI Privacy & Compliance Office</p>
               <p className="text-slate-400">Email: support@datamorph.ai &bull; Cairo, Egypt</p>
             </div>
             <Link
@@ -437,7 +437,7 @@ export default function PrivacyPolicyPage() {
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <Sparkles className="h-4 w-4 text-indigo-400" />
-            <span className="font-semibold text-slate-400">DataMorph AI Platform</span>
+            <span className="font-semibold text-slate-400">Prometheus AI Platform</span>
             <span>&bull;</span>
             <span>Privacy Policy</span>
           </div>
@@ -455,7 +455,7 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
         <div className="max-w-4xl mx-auto mt-3 text-center sm:text-left text-[11px] text-slate-600">
-          &copy; 2026 DataMorph AI. All rights reserved. Last updated September 2026.
+          &copy; 2026 Prometheus AI. All rights reserved. Last updated September 2026.
         </div>
       </footer>
     </div>

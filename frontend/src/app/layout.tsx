@@ -4,31 +4,31 @@ import { AuthProvider } from "../context/AuthContext";
 import { CookieConsent } from "../components/CookieConsent";
 
 export const metadata: Metadata = {
-  title: "DataMorph AI — AI Data Scientist Platform",
+  title: "Prometheus AI — AI Data Scientist Platform",
   description:
-    "Autonomous AI-powered data science platform. Upload datasets, auto-clean, generate visualizations, train ML models, and get executive reports — all powered by LangGraph agents and E2B sandbox execution.",
+    "Autonomous AI-powered data science platform. Upload datasets, auto-clean, generate visualizations, find insights, and get executive reports — all powered by LangGraph agents and isolated sandbox execution.",
   keywords: [
     "AI data analyst",
     "data science platform",
-    "AutoML",
+    "Prometheus AI",
     "data cleaning",
     "data visualization",
-    "machine learning",
+    "data insights",
     "LangGraph",
   ],
-  authors: [{ name: "DataMorph AI" }],
+  authors: [{ name: "Prometheus AI" }],
   openGraph: {
-    title: "DataMorph AI — AI Data Scientist Platform",
+    title: "Prometheus AI — AI Data Scientist Platform",
     description:
-      "Upload your dataset and let AI agents clean, analyze, visualize, and build ML models automatically.",
+      "Upload your dataset and let AI agents clean, analyze, visualize, and find insights automatically.",
     type: "website",
-    siteName: "DataMorph AI",
+    siteName: "Prometheus AI",
   },
   twitter: {
     card: "summary_large_image",
-    title: "DataMorph AI — AI Data Scientist Platform",
+    title: "Prometheus AI — AI Data Scientist Platform",
     description:
-      "Autonomous AI-powered data science. Clean, visualize, and predict in minutes.",
+      "Autonomous AI-powered data science. Clean, visualize, and extract insights in minutes.",
   },
   robots: "index, follow",
   icons: {

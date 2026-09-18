@@ -19,7 +19,7 @@ export function DataPrivacyBanner() {
         <div className="flex items-center space-x-1.5">
           <Lock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
           <span>
-            DataMorph AI <strong className="text-slate-300">does not review, access, or share</strong> your uploaded datasets.
+            Prometheus AI <strong className="text-slate-300">does not review, access, or share</strong> your uploaded datasets.
           </span>
         </div>
       </div>

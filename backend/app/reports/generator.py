@@ -279,7 +279,7 @@ def build_executive_html_report(
             </div>
             <div style="text-align: right;">
                 <span style="font-size: 11px; color: #64748b;">Powered by</span><br>
-                <strong style="color: #818cf8; font-size: 14px;">DataMorph AI Engine</strong>
+                <strong style="color: #818cf8; font-size: 14px;">Prometheus AI Engine</strong>
             </div>
         </div>
 

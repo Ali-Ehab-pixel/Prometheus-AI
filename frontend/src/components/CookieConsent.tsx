@@ -43,7 +43,7 @@ export function CookieConsent() {
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 We use essential cookies for session management and preferences.
-                By continuing to use DataMorph AI, you consent to our use of cookies.{" "}
+                By continuing to use Prometheus AI, you consent to our use of cookies.{" "}
                 <Link
                   href="/privacy"
                   className="text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2"
