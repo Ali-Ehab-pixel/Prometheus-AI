@@ -50,8 +50,7 @@ export default function Home() {
       const res = await triggerDataAction({
         file_id: uploadData.file_id,
         action: act,
-        target_column: targetCol || uploadData.metadata.columns[0]?.name,
-        output_format: act === "visualize" ? "html" : (act === "insights" || act === "automl" ? "json" : "csv"),
+        output_format: act === "visualize" ? "html" : (act === "insights" ? "json" : "csv"),
       });
       if (res.success) {
         handleActionSuccess(res);
@@ -350,14 +349,20 @@ export default function Home() {
         <footer className="border-t border-slate-900 bg-slate-950/80 py-6 px-6 mt-12 text-xs text-slate-500">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <span className="font-semibold text-slate-400">AI Data Scientist Platform</span>
+              <span className="font-semibold text-slate-400">DataMorph AI</span>
               <span>•</span>
               <span className="flex items-center space-x-1">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Isolated Execution Sandbox</span>
               </span>
             </div>
-            <p>Built with Next.js, LangGraph, OpenRouter (Qwen & Gemma), Pandas, and Plotly</p>
+            <div className="flex items-center space-x-4">
+              <a href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</a>
+              <span>•</span>
+              <a href="/terms" className="hover:text-slate-300 transition-colors">Terms & Conditions</a>
+              <span>•</span>
+              <a href="/contact" className="hover:text-slate-300 transition-colors">Contact Us</a>
+            </div>
           </div>
         </footer>
       </div>

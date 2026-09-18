@@ -6,11 +6,7 @@ from pydantic import BaseModel, Field
 class ActionType(str, Enum):
     CLEAN = "clean"
     VISUALIZE = "visualize"
-    PREDICT = "predict"
     INSIGHTS = "insights"
-    CLASSIFY = "classify"
-    AUTOML = "automl"
-    ANALYZE_ALL = "analyze_all"
 
 
 class OutputFormat(str, Enum):
@@ -54,7 +50,6 @@ class UploadResponse(BaseModel):
 class ActionRequest(BaseModel):
     file_id: str
     action: ActionType
-    custom_prompt: Optional[str] = None
     target_column: Optional[str] = None
     output_format: Optional[OutputFormat] = None
 
@@ -78,8 +73,6 @@ class ActionResponse(BaseModel):
     artifacts: List[ArtifactInfo] = Field(default_factory=list)
     execution_time_seconds: float = 0.0
     insights_data: Optional[Dict[str, Any]] = None
-    leaderboard_data: Optional[Dict[str, Any]] = None
-    explainability_data: Optional[Dict[str, Any]] = None
     version_saved: Optional[str] = None
     error: Optional[str] = None
 
@@ -101,29 +94,12 @@ class CopilotChatResponse(BaseModel):
     suggested_follow_ups: List[str] = Field(default_factory=list)
 
 
-# === Phase 6: Explainability Schemas ===
-
-class FeatureImportanceItem(BaseModel):
-    feature: str
-    importance: float
-    raw_score: float
-    direction: Optional[str] = "neutral"  # "positive", "negative", or "neutral"
-
-
-class ExplainabilityData(BaseModel):
-    target_column: str
-    method: str
-    summary: str
-    top_features: List[FeatureImportanceItem] = Field(default_factory=list)
-
-
-# === Phase 7 & 8: Reports, What-If, and History Schemas ===
+# === Phase 7 & 8: Reports and History Schemas ===
 
 class ReportGenerateRequest(BaseModel):
     file_id: str
     format: str = "html"  # "html" or "xlsx"
     title: Optional[str] = "Executive Data Science Report"
-
 
 class ReportGenerateResponse(BaseModel):
     success: bool
@@ -131,20 +107,6 @@ class ReportGenerateResponse(BaseModel):
     filename: str
     download_url: str
     message: str
-
-
-class PredictWhatIfRequest(BaseModel):
-    file_id: str
-    features: Dict[str, Any]
-
-
-class PredictWhatIfResponse(BaseModel):
-    success: bool
-    prediction: Any
-    confidence: Optional[float] = None
-    probabilities: Optional[Dict[str, float]] = None
-    task_type: Optional[str] = None
-    error: Optional[str] = None
 
 
 class AnalysisHistoryItem(BaseModel):

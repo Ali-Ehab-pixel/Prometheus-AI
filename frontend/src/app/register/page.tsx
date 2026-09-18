@@ -19,6 +19,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { DataPrivacyBanner } from '../../components/DataPrivacyBanner';
 
 const COUNTRIES = [
   "United States",
@@ -68,6 +69,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const { register } = useAuth();
   const router = useRouter();
@@ -99,6 +101,10 @@ export default function RegisterPage() {
     }
     if (!jobTitle.trim()) {
       setError("Please enter your current job title or role.");
+      return;
+    }
+    if (!agreedToTerms) {
+      setError("Please accept the Terms & Conditions and Privacy Policy.");
       return;
     }
 
@@ -154,6 +160,7 @@ export default function RegisterPage() {
 
         {/* Registration Card */}
         <div className="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-7 shadow-2xl backdrop-blur-xl space-y-5">
+          <DataPrivacyBanner />
           {error && (
             <div className="flex items-start space-x-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs animate-in fade-in">
               <AlertCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
@@ -305,6 +312,20 @@ export default function RegisterPage() {
             <div className="flex items-center space-x-2 pt-1 text-[11px] text-slate-400">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
               <span>Full access to LangGraph Data Cleaning, Visualizations, and AutoML</span>
+            </div>
+
+            {/* Terms & Privacy Checkbox */}
+            <div className="flex items-start space-x-2.5 pt-2">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-950"
+              />
+              <label htmlFor="terms" className="text-[11px] text-slate-300 leading-tight">
+                I agree to the <Link href="/terms" className="text-indigo-400 hover:underline">Terms & Conditions</Link> and <Link href="/privacy" className="text-indigo-400 hover:underline">Privacy Policy</Link>
+              </label>
             </div>
 
             {/* Submit Button */}

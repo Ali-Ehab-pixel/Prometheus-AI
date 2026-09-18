@@ -5,15 +5,20 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.auth import router as auth_router
+from app.auth import router as auth_router, get_current_user, require_subscription, decrement_free_uses, get_optional_user
+from app.admin import router as admin_router
+from app.contact import router as contact_router
+from app.subscription import router as subscription_router
 from app.config import settings
 from app.graph.state import AgentState
 from app.graph.workflow import analysis_graph
 from app.graph.copilot import chat_with_copilot
+from app.middleware import setup_rate_limiter, limiter, SecurityHeadersMiddleware, RequestLoggingMiddleware
+from app.models.auth import UserProfileResponse
 from app.models.schemas import (
     ActionRequest,
     ActionResponse,
@@ -26,8 +31,6 @@ from app.models.schemas import (
     UploadResponse,
     ReportGenerateRequest,
     ReportGenerateResponse,
-    PredictWhatIfRequest,
-    PredictWhatIfResponse,
     AnalysisHistoryItem,
     AnalysisHistoryResponse,
 )
@@ -48,8 +51,18 @@ logger = logging.getLogger("ai_data_analyst")
 app = FastAPI(
     title="AI Data Scientist Platform API",
     description="Backend orchestration with LangGraph, OpenRouter, and E2B Sandbox Execution",
-    version="1.0.0",
+    version="2.0.0",
+    docs_url="/api/docs" if settings.ENVIRONMENT == "development" else None,
+    redoc_url="/api/redoc" if settings.ENVIRONMENT == "development" else None,
 )
+
+# ==================== Middleware Stack ====================
+
+# Security Headers
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Request Logging
+app.add_middleware(RequestLoggingMiddleware)
 
 # CORS configuration
 app.add_middleware(
@@ -60,17 +73,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Authentication Router
-app.include_router(auth_router)
+# Rate Limiting
+setup_rate_limiter(app)
 
-# In-memory storage for active file sessions: file_id -> { "file_path", "filename", "metadata" }
+# ==================== Routers ====================
+
+app.include_router(auth_router)
+app.include_router(admin_router)
+app.include_router(contact_router)
+app.include_router(subscription_router)
+
+# ==================== In-memory storage ====================
+
 FILE_REGISTRY: Dict[str, Dict] = {}
 ARTIFACT_REGISTRY: Dict[str, Dict] = {}
 version_manager = DatasetVersionManager(base_dir=settings.VERSION_DIR)
 
 
+# ==================== Health Check ====================
+
 @app.get("/api/health")
-async def health_check():
+@limiter.limit(settings.RATE_LIMIT_GENERAL)
+async def health_check(request: Request):
     return {
         "status": "online",
         "llm_provider": "openrouter" if settings.OPENROUTER_API_KEY else "openai/other",
@@ -81,11 +105,19 @@ async def health_check():
     }
 
 
+# ==================== File Upload (requires auth + subscription) ====================
+
 @app.post("/api/upload", response_model=UploadResponse)
-async def upload_dataset(file: UploadFile = File(...)):
+@limiter.limit(settings.RATE_LIMIT_ACTION)
+async def upload_dataset(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: UserProfileResponse = Depends(require_subscription),
+):
     """
     Accepts tabular dataset upload (.csv, .xlsx, .xls, .txt, .json),
     saves to disk, parses schema & df.head(), and returns lightweight footprint.
+    Requires authentication and active subscription (or free uses remaining).
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
@@ -145,7 +177,20 @@ async def upload_dataset(file: UploadFile = File(...)):
             "profile": dataset_profile,
             "health_score": health,
             "recommendations": recommendations,
+            "user_id": current_user.id,
         }
+
+        # Update user stats
+        try:
+            from app.auth import get_db
+            with get_db() as conn:
+                conn.execute(
+                    "UPDATE users SET datasets_uploaded = datasets_uploaded + 1 WHERE id = ?",
+                    (current_user.id,),
+                )
+                conn.commit()
+        except Exception:
+            pass
 
         return UploadResponse(
             success=True,
@@ -233,16 +278,17 @@ async def copilot_chat_endpoint(req: CopilotChatRequest):
 
 
 @app.post("/api/action", response_model=ActionResponse)
-async def run_data_action(request: ActionRequest):
+@limiter.limit(settings.RATE_LIMIT_ACTION)
+async def run_data_action(
+    request: Request,
+    action_request: ActionRequest,
+    current_user: UserProfileResponse = Depends(require_subscription),
+):
     """
-    Trigger an AI data analysis action:
-    1. Look up dataset footprint.
-    2. Route to specialized agent in LangGraph state machine.
-    3. Generate pure Python code.
-    4. Execute inside E2B Sandbox or isolated environment.
-    5. Return generated code, execution logs, and downloadable/renderable artifacts.
+    Trigger an AI data analysis action.
+    Requires authentication and active subscription (or free uses remaining).
     """
-    file_id = request.file_id
+    file_id = action_request.file_id
     if file_id not in FILE_REGISTRY:
         raise HTTPException(status_code=404, detail="Dataset not found. Please re-upload the file.")
 
@@ -253,25 +299,25 @@ async def run_data_action(request: ActionRequest):
 
     # Target format determination
     target_format = "csv"
-    if request.action == ActionType.VISUALIZE:
+    if action_request.action == ActionType.VISUALIZE:
         target_format = "html"
-    elif request.action in [ActionType.INSIGHTS, ActionType.AUTOML]:
+    elif action_request.action == ActionType.INSIGHTS:
         target_format = "json"
-    elif request.output_format:
-        target_format = request.output_format.value
+    elif action_request.output_format:
+        target_format = action_request.output_format.value
 
     # Format schema for LLM
     schema_str = format_schema_for_llm(metadata)
 
     # Prepare LangGraph state
     initial_state: AgentState = {
-        "user_action": request.action.value,
+        "user_action": action_request.action.value,
         "dataset_metadata": metadata.model_dump(),
         "dataset_schema_str": schema_str,
         "dataset_filename": dataset_filename,
-        "dataset_path": dataset_filename,  # In sandbox, dataset is copied as original filename or dataset.csv
-        "user_instructions": request.custom_prompt,
-        "target_column": request.target_column,
+        "dataset_path": dataset_filename,
+        "user_instructions": None,
+        "target_column": action_request.target_column,
         "target_format": target_format,
         "raw_llm_response": None,
         "generated_code": None,
@@ -281,7 +327,7 @@ async def run_data_action(request: ActionRequest):
 
     try:
         # 1. Run LangGraph workflow
-        logger.info(f"Invoking LangGraph for action='{request.action.value}', file='{dataset_filename}'")
+        logger.info(f"Invoking LangGraph for action='{action_request.action.value}', file='{dataset_filename}'")
         final_state = analysis_graph.invoke(initial_state)
 
         generated_code = final_state.get("generated_code")
@@ -301,8 +347,6 @@ async def run_data_action(request: ActionRequest):
 
         artifact_info = None
         insights_data = None
-        leaderboard_data = None
-        explainability_data = None
         version_saved = None
 
         artifacts_list = []
@@ -330,23 +374,17 @@ async def run_data_action(request: ActionRequest):
                     except Exception:
                         pass
 
-                # Parse JSON if insights, leaderboard, or explainability
+                # Parse JSON if insights
                 if item["filename"].endswith(".json"):
                     try:
                         import json
                         parsed_json = json.loads(item["bytes"].decode("utf-8"))
-                        if "explainability" in item["filename"] or "top_features" in parsed_json:
-                            explainability_data = parsed_json
-                        elif "leaderboard" in item["filename"] or "models" in parsed_json:
-                            leaderboard_data = parsed_json
-                        elif request.action == ActionType.INSIGHTS or "insights" in parsed_json:
+                        if action_request.action == ActionType.INSIGHTS or "insights" in parsed_json:
                             insights_data = parsed_json
                     except Exception:
                         pass
 
-                # Track serialized model path for What-If inference
-                if item["filename"].endswith(".joblib") or "model" in item["filename"].lower():
-                    session_data["model_artifact_path"] = art_path
+
 
                 a_info = ArtifactInfo(
                     filename=item["filename"],
@@ -387,17 +425,12 @@ async def run_data_action(request: ActionRequest):
                 try:
                     import json
                     parsed_json = json.loads(exec_result.artifact_bytes.decode("utf-8"))
-                    if "explainability" in exec_result.artifact_filename or "top_features" in parsed_json:
-                        explainability_data = parsed_json
-                    elif "leaderboard" in exec_result.artifact_filename or "models" in parsed_json:
-                        leaderboard_data = parsed_json
-                    elif request.action == ActionType.INSIGHTS or "insights" in parsed_json:
+                    if action_request.action == ActionType.INSIGHTS or "insights" in parsed_json:
                         insights_data = parsed_json
                 except Exception:
                     insights_data = None
 
-            if exec_result.artifact_filename.endswith(".joblib") or "model" in exec_result.artifact_filename.lower():
-                session_data["model_artifact_path"] = saved_artifact_path
+
 
             artifact_info = ArtifactInfo(
                 filename=exec_result.artifact_filename,
@@ -410,7 +443,7 @@ async def run_data_action(request: ActionRequest):
             artifacts_list.append(artifact_info)
 
         # 3. Post-clean Auto-Versioning & Profile Refresh
-        if exec_result.success and request.action in [ActionType.CLEAN, ActionType.ANALYZE_ALL] and exec_result.artifact_bytes:
+        if exec_result.success and action_request.action == ActionType.CLEAN and exec_result.artifact_bytes:
             try:
                 import io
                 import pandas as pd
@@ -423,7 +456,7 @@ async def run_data_action(request: ActionRequest):
 
                 if cleaned_df is not None:
                     # Save version snapshot
-                    label = f"Cleaned ({request.custom_prompt[:25]}...)" if request.custom_prompt else "Cleaned & Transformed"
+                    label = f"Cleaned ({action_request.custom_prompt[:25]}...)" if action_request.custom_prompt else "Cleaned & Transformed"
                     v_meta = version_manager.save_version(file_id, cleaned_df, label)
                     version_saved = v_meta["version_id"]
 
@@ -444,7 +477,7 @@ async def run_data_action(request: ActionRequest):
             except Exception as ve:
                 logger.warning(f"Failed to auto-version cleaned dataset: {ve}")
 
-        # 4. Log analysis history to SQLite
+        # 4. Log analysis history to SQLite + decrement free uses
         try:
             from app.auth import get_db
             import datetime
@@ -457,23 +490,33 @@ async def run_data_action(request: ActionRequest):
                     (
                         str(uuid.uuid4()),
                         file_id,
-                        None,
-                        request.action.value,
-                        request.custom_prompt,
-                        request.target_column,
+                        current_user.id,
+                        action_request.action.value,
+                        action_request.custom_prompt,
+                        action_request.target_column,
                         1 if exec_result.success else 0,
                         exec_result.execution_time_seconds,
                         exec_result.artifact_filename,
                         datetime.datetime.now().isoformat(),
                     ),
                 )
+                # Update user analyses count
+                conn.execute(
+                    "UPDATE users SET analyses_performed = analyses_performed + 1 WHERE id = ?",
+                    (current_user.id,),
+                )
                 conn.commit()
+
+            # Decrement free uses after successful action
+            if exec_result.success:
+                decrement_free_uses(current_user.id)
+
         except Exception as le:
             logger.warning(f"Failed to log analysis record: {le}")
 
         return ActionResponse(
             success=exec_result.success,
-            action=request.action,
+            action=action_request.action,
             generated_code=generated_code,
             stdout=exec_result.stdout,
             stderr=exec_result.stderr,
@@ -481,8 +524,6 @@ async def run_data_action(request: ActionRequest):
             artifacts=artifacts_list,
             execution_time_seconds=exec_result.execution_time_seconds,
             insights_data=insights_data,
-            leaderboard_data=leaderboard_data,
-            explainability_data=explainability_data,
             version_saved=version_saved,
             error=exec_result.error,
         )
@@ -491,7 +532,7 @@ async def run_data_action(request: ActionRequest):
         logger.error(f"Error during action execution: {e}", exc_info=True)
         return ActionResponse(
             success=False,
-            action=request.action,
+            action=action_request.action,
             generated_code=initial_state.get("generated_code") or "",
             stdout="",
             stderr=str(e),
@@ -605,72 +646,13 @@ async def generate_dataset_report(file_id: str, req: ReportGenerateRequest):
     )
 
 
-@app.post("/api/models/{file_id}/predict", response_model=PredictWhatIfResponse)
-async def predict_what_if(file_id: str, req: PredictWhatIfRequest):
+@app.post("/api/models/{file_id}/predict")
+async def predict_what_if(file_id: str):
     """
     Real-time What-If model inference simulator.
     Loads the trained pipeline model and evaluates prediction on custom feature values.
     """
-    if file_id not in FILE_REGISTRY:
-        raise HTTPException(status_code=404, detail="Dataset session not found")
-
-    session_data = FILE_REGISTRY[file_id]
-    model_path = session_data.get("model_artifact_path")
-
-    # Check if model artifact exists in session or in artifacts dir
-    if not model_path or not os.path.exists(model_path):
-        for art_id, art_info in ARTIFACT_REGISTRY.items():
-            if art_info["filename"].endswith(".joblib") and os.path.exists(art_info["file_path"]):
-                model_path = art_info["file_path"]
-                session_data["model_artifact_path"] = model_path
-                break
-
-    if not model_path or not os.path.exists(model_path):
-        raise HTTPException(
-            status_code=400,
-            detail="No trained model found. Please run AutoML Benchmark, Predict, or Classify first.",
-        )
-
-    try:
-        import joblib
-        import pandas as pd
-        import numpy as np
-
-        model = joblib.load(model_path)
-        input_df = pd.DataFrame([req.features])
-
-        raw_pred = model.predict(input_df)
-        pred_val = raw_pred[0]
-        if hasattr(pred_val, "item"):
-            pred_val = pred_val.item()
-        elif isinstance(pred_val, (np.generic, np.ndarray)):
-            pred_val = float(pred_val)
-
-        conf = None
-        probabilities = None
-        task_type = "regression"
-
-        if hasattr(model, "predict_proba"):
-            task_type = "classification"
-            probs = model.predict_proba(input_df)[0]
-            conf = float(np.max(probs))
-            classes = model.classes_ if hasattr(model, "classes_") else [str(i) for i in range(len(probs))]
-            probabilities = {str(c): round(float(p), 4) for c, p in zip(classes, probs)}
-
-        return PredictWhatIfResponse(
-            success=True,
-            prediction=pred_val,
-            confidence=round(conf, 4) if conf is not None else None,
-            probabilities=probabilities,
-            task_type=task_type,
-        )
-    except Exception as e:
-        logger.error(f"What-If prediction error: {e}", exc_info=True)
-        return PredictWhatIfResponse(
-            success=False,
-            prediction=None,
-            error=str(e),
-        )
+    raise HTTPException(status_code=501, detail="Prediction feature is temporarily disabled.")
 
 
 @app.get("/api/analyses/history", response_model=AnalysisHistoryResponse)
@@ -710,4 +692,3 @@ async def get_analyses_history(file_id: Optional[str] = None):
         logger.warning(f"Failed to fetch analyses history: {e}")
 
     return AnalysisHistoryResponse(history=history_items)
-

@@ -15,24 +15,16 @@ import {
   Maximize2,
   Minimize2,
   Image as ImageIcon,
-  TrendingUp,
-  BrainCircuit,
   Wand2,
-  Layers,
   FileCheck,
   Lightbulb,
-  Crosshair,
   BookmarkCheck,
   FileJson,
-  Trophy,
 } from "lucide-react";
 import { ActionResponse, ColumnInfo } from "../lib/types";
 import { getArtifactDownloadUrl } from "../lib/api";
 import { CodeViewer } from "./CodeViewer";
 import { ChartGallery } from "./ChartGallery";
-import { ModelLeaderboard } from "./ModelLeaderboard";
-import { FeatureImportance } from "./FeatureImportance";
-import { PredictionSimulator } from "./PredictionSimulator";
 
 interface ResultsViewProps {
   result: ActionResponse;
@@ -45,7 +37,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   result,
   fileId,
   columns,
-  targetColumn,
 }) => {
   const [activeTab, setActiveTab] = useState<"result" | "code" | "logs">("result");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -113,11 +104,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             <h3 className="text-base font-bold text-slate-100 tracking-tight">
               {result.action === "clean" && "Data Clean & Transform Pipeline Succeeded"}
               {result.action === "visualize" && "Interactive Visualization Generated"}
-              {result.action === "predict" && "Machine Learning Forecast & Predictions Complete"}
               {result.action === "insights" && "Automated Statistical Insights & Discoveries"}
-              {result.action === "classify" && "Classification Model Training & Evaluation Complete"}
-              {result.action === "automl" && "AutoML Model Benchmark & Leaderboard Complete"}
-              {result.action === "analyze_all" && "Comprehensive End-to-End Analysis Pipeline Complete"}
             </h3>
             <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 uppercase font-semibold">
               {result.action}
@@ -195,15 +182,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         >
           {result.action === "visualize" ? (
             <BarChart className="h-3.5 w-3.5" />
-          ) : result.action === "predict" ? (
-            <BrainCircuit className="h-3.5 w-3.5" />
           ) : (
             <FileSpreadsheet className="h-3.5 w-3.5" />
           )}
           <span>
-            {result.action === "visualize" && "Interactive Visualization View"}
-            {result.action === "predict" && "Model Forecast & Scores Dashboard"}
-            {result.action === "clean" && "Cleaned Dataset & Changes Summary"}
+            {result.action === "visualize" ? "Interactive Visualization" : 
+             result.action === "insights" ? "Insights & Discoveries" :
+             "Cleaned Dataset Summary"}
           </span>
         </button>
 
@@ -295,66 +280,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             </div>
           )}
 
-          {/* ======================================================== */}
-          {/* 3. PREDICT & FORECAST OUTPUT CONTAINER                   */}
-          {/* ======================================================== */}
-          {result.action === "predict" && (
-            <div className="space-y-6">
-              {/* Model Scores & Summary Dashboard */}
-              <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-5 shadow-xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-100 text-base">
-                        Machine Learning Model Evaluation & Scores
-                      </h4>
-                      <p className="text-xs text-slate-400">
-                        Automated feature engineering, model training, and predictions generation
-                      </p>
-                    </div>
-                  </div>
 
-                  {result.artifact?.download_url && (
-                    <a
-                      href={downloadUrl}
-                      download={result.artifact.filename || "output_predictions.csv"}
-                      className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-500 hover:via-indigo-500 hover:to-pink-500 text-white font-semibold text-xs shadow-md shadow-purple-600/20"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Download Enriched Predictions ({result.artifact.filename || "output_predictions.csv"})</span>
-                    </a>
-                  )}
-                </div>
-
-                {/* Evaluation Scores Summary */}
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Detailed Model Performance & Metric Scores:
-                  </span>
-                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-purple-200/90 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap">
-                    {result.stdout || "Model trained and evaluated successfully. Predictions and confidence probabilities appended to output_predictions.csv."}
-                  </div>
-                </div>
-              </div>
-
-              {/* Phase 6: Feature Importance & Explainability */}
-              {result.explainability_data && (
-                <FeatureImportance explainability={result.explainability_data} />
-              )}
-
-              {/* Phase 7: Interactive What-If Scenario Simulator */}
-              {fileId && columns && columns.length > 0 && (
-                <PredictionSimulator
-                  fileId={fileId}
-                  columns={columns}
-                  targetColumn={result.explainability_data?.target_column || targetColumn}
-                />
-              )}
-            </div>
-          )}
 
           {/* ======================================================== */}
           {/* 4. FIND INSIGHTS OUTPUT CONTAINER                        */}
@@ -500,175 +426,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             </div>
           )}
 
-          {/* ======================================================== */}
-          {/* 5. CLASSIFY OUTPUT CONTAINER                             */}
-          {/* ======================================================== */}
-          {result.action === "classify" && (
-            <div className="space-y-6">
-              <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-5 shadow-xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
-                      <Crosshair className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-100 text-base">
-                        Classification Model Performance & Scores
-                      </h4>
-                      <p className="text-xs text-slate-400">
-                        Stratified cross-validation, precision/recall evaluation, and class predictions
-                      </p>
-                    </div>
-                  </div>
 
-                  {result.artifact?.download_url && (
-                    <a
-                      href={downloadUrl}
-                      download={result.artifact.filename || "output_predictions.csv"}
-                      className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white font-semibold text-xs shadow-md shadow-cyan-600/20"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Download Predictions ({result.artifact.filename || "output_predictions.csv"})</span>
-                    </a>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Classification Performance Metrics & Confusion Matrix:
-                  </span>
-                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-cyan-200/90 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap">
-                    {result.stdout || "Classification model trained successfully. Predictions and confidence probabilities appended to output_predictions.csv."}
-                  </div>
-                </div>
-              </div>
-
-              {/* Phase 6: Feature Importance & Explainability */}
-              {result.explainability_data && (
-                <FeatureImportance explainability={result.explainability_data} />
-              )}
-
-              {/* Phase 7: Interactive What-If Scenario Simulator */}
-              {fileId && columns && columns.length > 0 && (
-                <PredictionSimulator
-                  fileId={fileId}
-                  columns={columns}
-                  targetColumn={result.explainability_data?.target_column || targetColumn}
-                />
-              )}
-            </div>
-          )}
-
-          {/* ======================================================== */}
-          {/* 6. ANALYZE EVERYTHING OUTPUT CONTAINER                   */}
-          {/* ======================================================== */}
-          {result.action === "analyze_all" && (
-            <div className="space-y-6">
-              <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-5 shadow-xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center">
-                      <Layers className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-100 text-base">
-                        Comprehensive End-to-End Pipeline Execution
-                      </h4>
-                      <p className="text-xs text-slate-400">
-                        Autonomous pipeline: Data cleaning, transformation, and analytical modeling
-                      </p>
-                    </div>
-                  </div>
-
-                  {result.artifact?.download_url && (
-                    <a
-                      href={downloadUrl}
-                      download={result.artifact.filename || "output.csv"}
-                      className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-semibold text-xs shadow-md shadow-fuchsia-600/20"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Download Artifact ({result.artifact.filename || "output.csv"})</span>
-                    </a>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Pipeline Execution Summary:
-                  </span>
-                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-fuchsia-200/90 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap">
-                    {result.stdout || "Comprehensive pipeline execution completed successfully."}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ======================================================== */}
-          {/* 7. AUTOML MODEL BENCHMARK LEADERBOARD CONTAINER          */}
-          {/* ======================================================== */}
-          {(result.action === "automl" || result.leaderboard_data) && (
-            <div className="space-y-6">
-              {result.leaderboard_data ? (
-                <ModelLeaderboard
-                  leaderboard={result.leaderboard_data}
-                  artifacts={result.artifacts}
-                />
-              ) : (
-                <div className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-5 shadow-xl">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-                        <Trophy className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-100 text-base">
-                          AutoML Benchmark & Model Leaderboard
-                        </h4>
-                        <p className="text-xs text-slate-400">
-                          Trained 5 competitive algorithms and evaluated on cross-validated test metrics
-                        </p>
-                      </div>
-                    </div>
-
-                    {result.artifact?.download_url && (
-                      <a
-                        href={downloadUrl}
-                        download={result.artifact.filename || "best_model.joblib"}
-                        className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20"
-                      >
-                        <Download className="h-4 w-4" />
-                        <span>Download Winning Model ({result.artifact.filename || "best_model.joblib"})</span>
-                      </a>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Leaderboard Benchmark Output:
-                    </span>
-                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-amber-200/90 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap">
-                      {result.stdout || "AutoML benchmark completed successfully. Best model saved to best_model.joblib."}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Phase 6: Feature Importance & Explainability */}
-              {result.explainability_data && (
-                <FeatureImportance explainability={result.explainability_data} />
-              )}
-
-              {/* Phase 7: Interactive What-If Scenario Simulator */}
-              {fileId && columns && columns.length > 0 && (
-                <PredictionSimulator
-                  fileId={fileId}
-                  columns={columns}
-                  targetColumn={result.explainability_data?.target_column || result.leaderboard_data?.target_column || targetColumn}
-                />
-              )}
-            </div>
-          )}
         </div>
       )}
 

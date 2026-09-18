@@ -14,6 +14,8 @@ import {
   Shield,
   History,
   FileText,
+  MessageSquare,
+  CreditCard,
 } from "lucide-react";
 import { checkBackendHealth } from "../lib/api";
 import { HealthStatus } from "../lib/types";
@@ -208,6 +210,35 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <LayoutDashboard className="h-4 w-4 text-purple-400" />
                     <span>Dashboard</span>
                   </Link>
+
+                  <Link
+                    href="/subscription"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition-colors text-xs font-medium"
+                  >
+                    <CreditCard className="h-4 w-4 text-emerald-400" />
+                    <span>Subscription</span>
+                  </Link>
+
+                  <Link
+                    href="/contact"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition-colors text-xs font-medium"
+                  >
+                    <MessageSquare className="h-4 w-4 text-amber-400" />
+                    <span>Contact Us</span>
+                  </Link>
+
+                  {user.role === "admin" && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition-colors text-xs font-medium"
+                    >
+                      <Shield className="h-4 w-4 text-rose-400" />
+                      <span>Admin Dashboard</span>
+                    </Link>
+                  )}
 
                   <div className="border-t border-slate-800/80 my-1" />
 

@@ -27,7 +27,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -77,7 +77,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Login Form Card */}
+        {/* Form Card */}
         <div className="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-7 shadow-2xl backdrop-blur-xl space-y-6">
           {error && (
             <div className="flex items-start space-x-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs animate-in fade-in">
@@ -86,7 +86,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
             {/* Email Field */}
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-slate-300">

@@ -1,4 +1,4 @@
-export type ActionType = "clean" | "visualize" | "predict" | "insights" | "classify" | "automl" | "analyze_all";
+export type ActionType = "clean" | "visualize" | "insights";
 
 export type OutputFormat = "csv" | "xlsx" | "html" | "json";
 
@@ -38,7 +38,6 @@ export interface UploadResponse {
 export interface ActionRequest {
   file_id: string;
   action: ActionType;
-  custom_prompt?: string;
   target_column?: string;
   output_format?: OutputFormat;
 }
@@ -69,26 +68,6 @@ export interface InsightsData {
   anomalies_detected?: { column: string; outlier_count: number; description: string }[];
 }
 
-export interface ModelLeaderboardItem {
-  rank: number;
-  name: string;
-  primary_metric_value: number;
-  primary_metric_name: string;
-  secondary_metric_value?: number;
-  secondary_metric_name?: string;
-  training_time_seconds: number;
-  metrics?: Record<string, any>;
-  params?: Record<string, any>;
-}
-
-export interface LeaderboardData {
-  task_type: "classification" | "regression" | string;
-  target_column: string;
-  primary_metric_name: string;
-  best_model_name: string;
-  models: ModelLeaderboardItem[];
-}
-
 export interface ActionResponse {
   success: boolean;
   action: ActionType;
@@ -99,8 +78,6 @@ export interface ActionResponse {
   artifacts?: ArtifactInfo[];
   execution_time_seconds: number;
   insights_data?: InsightsData;
-  leaderboard_data?: LeaderboardData;
-  explainability_data?: ExplainabilityData;
   version_saved?: string;
   error?: string;
 }
@@ -124,6 +101,10 @@ export interface User {
   created_at: string;
   datasets_uploaded: number;
   analyses_performed: number;
+  role: string;
+  subscription_plan: string;
+  subscription_expires_at?: string;
+  free_uses_remaining: number;
 }
 
 export interface LoginCredentials {
@@ -153,6 +134,40 @@ export interface AuthResponse {
   token_type: string;
   user: User;
   message: string;
+  requires_otp?: boolean;
+}
+
+export interface OTPLoginResponse {
+  success: boolean;
+  requires_otp: boolean;
+  email: string;
+  message: string;
+}
+
+export interface OTPVerifyRequest {
+  email: string;
+  otp_code: string;
+}
+
+export interface ContactTicket {
+  id: string;
+  user_id?: string;
+  user_email: string;
+  subject: string;
+  category: string;
+  message: string;
+  status: string;
+  admin_reply?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface SubscriptionStatus {
+  plan: string;
+  status: string;
+  expires_at?: string;
+  free_uses_remaining: number;
+  is_active: boolean;
 }
 
 // === Phase 1: Dataset Intelligence Types ===
@@ -237,22 +252,6 @@ export interface CopilotChatResponse {
   suggested_follow_ups?: string[];
 }
 
-// === Phase 6: Explainability Types ===
-
-export interface FeatureImportanceItem {
-  feature: string;
-  importance: number;
-  raw_score: number;
-  direction?: "positive" | "negative" | "neutral";
-}
-
-export interface ExplainabilityData {
-  target_column: string;
-  method: string;
-  summary: string;
-  top_features: FeatureImportanceItem[];
-}
-
 // === Phase 7 & 8: Reports, What-If, and History Types ===
 
 export interface ReportGenerateRequest {
@@ -267,20 +266,6 @@ export interface ReportGenerateResponse {
   filename: string;
   download_url: string;
   message: string;
-}
-
-export interface PredictWhatIfRequest {
-  file_id: string;
-  features: Record<string, any>;
-}
-
-export interface PredictWhatIfResponse {
-  success: boolean;
-  prediction: any;
-  confidence?: number;
-  probabilities?: Record<string, number>;
-  task_type?: "classification" | "regression" | string;
-  error?: string;
 }
 
 export interface AnalysisHistoryItem {

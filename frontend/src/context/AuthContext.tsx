@@ -5,18 +5,32 @@ import { useRouter } from "next/navigation";
 import {
   AuthResponse,
   LoginCredentials,
+  OTPLoginResponse,
+  OTPVerifyRequest,
   RegisterCredentials,
   UpdateProfilePayload,
   User,
 } from "../lib/types";
-import { getProfile, loginUser, logoutUserApi, registerUser, updateUserProfile } from "../lib/api";
+import {
+  getProfile,
+  loginUser,
+  logoutUserApi,
+  registerUser,
+  resendOTP,
+  updateUserProfile,
+  verifyOTP,
+} from "../lib/api";
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
+  hasActiveSubscription: boolean;
   login: (credentials: LoginCredentials) => Promise<AuthResponse>;
+  verifyLoginOTP: (data: OTPVerifyRequest) => Promise<AuthResponse>;
+  resendLoginOTP: (credentials: LoginCredentials) => Promise<{ success: boolean; message: string }>;
   register: (credentials: RegisterCredentials) => Promise<AuthResponse>;
   updateProfile: (payload: UpdateProfilePayload) => Promise<User>;
   logout: () => Promise<void>;
@@ -64,6 +78,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res;
   };
 
+  const verifyLoginOTP = async (data: OTPVerifyRequest): Promise<AuthResponse> => {
+    // Step 2: Verify OTP and get token
+    const res = await verifyOTP(data);
+    if (res.access_token && res.user) {
+      setToken(res.access_token);
+      setUser(res.user);
+      sessionStorage.setItem("datamorph_auth_token", res.access_token);
+      sessionStorage.setItem("datamorph_auth_user", JSON.stringify(res.user));
+      localStorage.setItem("datamorph_has_registered", "true");
+    }
+    return res;
+  };
+
+  const resendLoginOTP = async (credentials: LoginCredentials): Promise<{ success: boolean; message: string }> => {
+    return await resendOTP(credentials);
+  };
+
   const register = async (credentials: RegisterCredentials): Promise<AuthResponse> => {
     const res = await registerUser(credentials);
     if (res.access_token && res.user) {
@@ -102,6 +133,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     router.push("/login");
   };
 
+  // Computed properties
+  const isAdmin = user?.role === "admin";
+  const hasActiveSubscription =
+    isAdmin ||
+    user?.subscription_plan === "monthly" ||
+    user?.subscription_plan === "yearly" ||
+    (user?.free_uses_remaining ?? 0) > 0;
+
   return (
     <AuthContext.Provider
       value={{
@@ -109,7 +148,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isLoading,
         isAuthenticated: !!user && !!token,
+        isAdmin,
+        hasActiveSubscription,
         login,
+        verifyLoginOTP,
+        resendLoginOTP,
         register,
         updateProfile,
         logout,

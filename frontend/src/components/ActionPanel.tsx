@@ -4,16 +4,12 @@ import React, { useState } from "react";
 import {
   Sparkles,
   BarChart3,
-  TrendingUp,
   Play,
   Loader2,
   Wand2,
   SlidersHorizontal,
   FileCode2,
-  Lightbulb,
-  Crosshair,
-  Layers,
-  Trophy
+  Lightbulb
 } from "lucide-react";
 import { ActionRequest, ActionResponse, ActionType, DatasetMetadata, OutputFormat } from "../lib/types";
 import { triggerDataAction } from "../lib/api";
@@ -36,8 +32,6 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
   isRunning,
 }) => {
   const [selectedAction, setSelectedAction] = useState<ActionType>("clean");
-  const [customPrompt, setCustomPrompt] = useState("");
-  const [targetColumn, setTargetColumn] = useState<string>(metadata.columns[0]?.name || "");
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("csv");
 
   const handleExecute = async () => {
@@ -48,9 +42,8 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
     const payload: ActionRequest = {
       file_id: fileId,
       action: selectedAction,
-      custom_prompt: customPrompt.trim() ? customPrompt.trim() : undefined,
-      target_column: (selectedAction === "predict" || selectedAction === "classify" || selectedAction === "automl" || selectedAction === "analyze_all") ? targetColumn : undefined,
-      output_format: selectedAction === "visualize" ? "html" : (selectedAction === "insights" || selectedAction === "automl" ? "json" : outputFormat),
+      target_column: undefined,
+      output_format: selectedAction === "visualize" ? "html" : (selectedAction === "insights" ? "json" : outputFormat),
     };
 
     try {
@@ -93,46 +86,13 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
       agent: "Visualization Agent (Plotly Express)",
     },
     {
-      type: "predict",
-      title: "Predict & Forecast",
-      description: "AutoML baseline pipeline (RandomForest), evaluate metrics, append predictions to dataset.",
-      icon: <TrendingUp className="h-5 w-5" />,
-      color: "from-purple-600/20 to-pink-500/20 border-purple-500/40 text-purple-400",
-      agent: "ML Forecaster Agent (Scikit-Learn)",
-    },
-    {
       type: "insights",
       title: "Find Insights",
       description: "Discover hidden patterns, anomalies, and statistically significant correlations automatically.",
       icon: <Lightbulb className="h-5 w-5" />,
       color: "from-amber-600/20 to-yellow-500/20 border-amber-500/40 text-amber-400",
       agent: "Analyst Agent (Pandas Profiling)",
-    },
-    {
-      type: "classify",
-      title: "Classify",
-      description: "Train a classification model to categorize data into distinct groups based on features.",
-      icon: <Crosshair className="h-5 w-5" />,
-      color: "from-cyan-600/20 to-sky-500/20 border-cyan-500/40 text-cyan-400",
-      agent: "ML Classifier Agent (XGBoost/Sklearn)",
-    },
-    {
-      type: "automl",
-      title: "AutoML Benchmark",
-      description: "Train 5 competitive models (RandomForest, GradientBoosting, ExtraTrees, etc.), rank on leaderboard, and download winning model.",
-      icon: <Trophy className="h-5 w-5" />,
-      color: "from-amber-500/20 to-orange-500/20 border-amber-500/40 text-amber-300",
-      agent: "AutoML Benchmark Agent (5 ML Models)",
-    },
-    {
-      type: "analyze_all",
-      title: "Analyze Everything",
-      description: "Run a full end-to-end pipeline: clean data, generate visualizations, and train a model.",
-      icon: <Layers className="h-5 w-5" />,
-      color: "from-fuchsia-600/20 to-purple-600/20 border-fuchsia-500/40 text-fuchsia-400",
-      agent: "Supervisor Agent (Orchestrator)",
-      special: true
-    },
+    }
   ];
 
   return (
@@ -149,8 +109,8 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
         </div>
       </div>
 
-      {/* 7 Prominent Action Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* 3 Prominent Action Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {actionCards.map((card) => {
           const isSelected = selectedAction === card.type;
           
@@ -206,74 +166,26 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
       </div>
 
       {/* Action Specific Parameters & Refinement Prompt */}
-      <div className="bg-slate-950/60 rounded-xl border border-slate-800/80 p-4 space-y-4 text-xs">
-        <div className="flex items-center space-x-2 text-slate-300 font-semibold">
-          <SlidersHorizontal className="h-3.5 w-3.5 text-indigo-400" />
-          <span>Action Parameters & Custom Instructions (Optional)</span>
+      {selectedAction === "clean" && (
+        <div className="bg-slate-950/60 rounded-xl border border-slate-800/80 p-4 space-y-4 text-xs">
+          <div className="flex items-center space-x-2 text-slate-300 font-semibold">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-indigo-400" />
+            <span>Export Settings</span>
+          </div>
+          <div>
+            <label className="block text-slate-400 mb-1 font-medium">Export File Format:</label>
+            <select
+              value={outputFormat}
+              onChange={(e) => setOutputFormat(e.target.value as OutputFormat)}
+              disabled={isRunning}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+            >
+              <option value="csv">CSV (.csv)</option>
+              <option value="xlsx">Excel (.xlsx)</option>
+            </select>
+          </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* If Predict/Classify/AutoML Action is Selected -> Show Target Column Dropdown */}
-          {(selectedAction === "predict" || selectedAction === "classify" || selectedAction === "automl" || selectedAction === "analyze_all") && (
-            <div>
-              <label className="block text-slate-400 mb-1 font-medium">
-                Target Variable / Prediction Column:
-              </label>
-              <select
-                value={targetColumn}
-                onChange={(e) => setTargetColumn(e.target.value)}
-                disabled={isRunning}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
-              >
-                {metadata.columns.map((col) => (
-                  <option key={col.name} value={col.name}>
-                    {col.name} ({col.dtype})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Export Format */}
-          {selectedAction !== "visualize" && selectedAction !== "insights" && selectedAction !== "automl" && (
-            <div>
-              <label className="block text-slate-400 mb-1 font-medium">Export File Format:</label>
-              <select
-                value={outputFormat}
-                onChange={(e) => setOutputFormat(e.target.value as OutputFormat)}
-                disabled={isRunning}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
-              >
-                <option value="csv">CSV (.csv)</option>
-                <option value="xlsx">Excel (.xlsx)</option>
-              </select>
-            </div>
-          )}
-        </div>
-
-        {/* Custom Prompt Input */}
-        <div>
-          <label className="block text-slate-400 mb-1 font-medium">
-            Natural Language Refinement:
-          </label>
-          <input
-            type="text"
-            placeholder={
-              selectedAction === "clean"
-                ? "e.g., 'Drop columns with over 50% missing values and one-hot encode categorical features'"
-                : selectedAction === "visualize"
-                ? "e.g., 'Generate a correlation matrix and scatter plot of Age vs Fare colored by Survived'"
-                : selectedAction === "automl"
-                ? "e.g., 'Benchmark all 5 algorithms and prioritize recall for the minority class'"
-                : "e.g., 'Train a classification model and highlight top 3 feature importances'"
-            }
-            value={customPrompt}
-            onChange={(e) => setCustomPrompt(e.target.value)}
-            disabled={isRunning}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-      </div>
+      )}
 
       {/* Trigger Button */}
       <div className="flex items-center justify-end">

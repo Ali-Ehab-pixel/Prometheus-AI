@@ -1,4 +1,5 @@
 import os
+import secrets
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field
@@ -30,6 +31,24 @@ class Settings(BaseSettings):
     # File Storage Paths
     UPLOAD_DIR: str = Field(default="./uploads")
     ARTIFACT_DIR: str = Field(default="./artifacts")
+
+    # Security Settings
+    JWT_SECRET_KEY: str = Field(default_factory=lambda: secrets.token_hex(32))
+    SESSION_EXPIRY_HOURS: int = Field(default=24)
+
+    # Rate Limiting
+    RATE_LIMIT_GENERAL: str = Field(default="60/minute")
+    RATE_LIMIT_AUTH: str = Field(default="5/minute")
+    RATE_LIMIT_ACTION: str = Field(default="10/minute")
+
+    # Admin
+    ADMIN_EMAIL: str = Field(default="0305002ali@gmail.com")
+
+    # Payment Gateway (Paymob — for future use)
+    PAYMOB_API_KEY: Optional[str] = Field(default=None)
+    PAYMOB_INTEGRATION_ID: Optional[str] = Field(default=None)
+    PAYMOB_IFRAME_ID: Optional[str] = Field(default=None)
+    PAYMOB_HMAC_SECRET: Optional[str] = Field(default=None)
 
     @property
     def cors_origins(self) -> List[str]:

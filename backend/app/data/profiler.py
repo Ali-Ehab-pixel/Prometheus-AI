@@ -115,9 +115,17 @@ def profile_dataset(df: pd.DataFrame, filename: str) -> dict:
             
         profile["columns"].append(col_profile)
         
-    # Duplicate rows
+    # Duplicate rows and global null metrics
     duplicate_rows = int(df.duplicated().sum())
+    total_null_count = int(df.isnull().sum().sum())
+    total_cells = row_count * col_count
+    total_null_percentage = float((total_null_count / total_cells) * 100.0) if total_cells > 0 else 0.0
+
     profile["duplicate_rows"] = duplicate_rows
+    profile["duplicate_row_count"] = duplicate_rows
+    profile["total_null_count"] = total_null_count
+    profile["total_null_percentage"] = total_null_percentage
+
     if duplicate_rows > 0:
         profile["quality_issues"].append({"column": None, "issue": "duplicate_rows"})
 

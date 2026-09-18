@@ -1,10 +1,39 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
+import { CookieConsent } from "../components/CookieConsent";
 
 export const metadata: Metadata = {
-  title: "AI Data Analyst Platform",
-  description: "Automated Data Cleaning, Interactive Visualizations, and Machine Learning Predictions orchestrated by LangGraph and E2B Sandbox.",
+  title: "DataMorph AI — AI Data Scientist Platform",
+  description:
+    "Autonomous AI-powered data science platform. Upload datasets, auto-clean, generate visualizations, train ML models, and get executive reports — all powered by LangGraph agents and E2B sandbox execution.",
+  keywords: [
+    "AI data analyst",
+    "data science platform",
+    "AutoML",
+    "data cleaning",
+    "data visualization",
+    "machine learning",
+    "LangGraph",
+  ],
+  authors: [{ name: "DataMorph AI" }],
+  openGraph: {
+    title: "DataMorph AI — AI Data Scientist Platform",
+    description:
+      "Upload your dataset and let AI agents clean, analyze, visualize, and build ML models automatically.",
+    type: "website",
+    siteName: "DataMorph AI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DataMorph AI — AI Data Scientist Platform",
+    description:
+      "Autonomous AI-powered data science. Clean, visualize, and predict in minutes.",
+  },
+  robots: "index, follow",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -14,8 +43,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <meta name="theme-color" content="#090d16" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </head>
       <body className="bg-[#090d16] text-slate-100 antialiased min-h-screen flex flex-col bg-grid-pattern">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <CookieConsent />
+        </AuthProvider>
       </body>
     </html>
   );

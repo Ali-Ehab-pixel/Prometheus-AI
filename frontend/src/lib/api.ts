@@ -20,6 +20,10 @@ import {
   PredictWhatIfRequest,
   PredictWhatIfResponse,
   AnalysisHistoryResponse,
+  OTPLoginResponse,
+  OTPVerifyRequest,
+  ContactTicket,
+  SubscriptionStatus,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
@@ -42,8 +46,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ==================== Auth API ====================
+
 export async function loginUser(credentials: LoginCredentials): Promise<AuthResponse> {
   const res = await api.post<AuthResponse>("/api/auth/login", credentials);
+  return res.data;
+}
+
+export async function verifyOTP(data: OTPVerifyRequest): Promise<AuthResponse> {
+  const res = await api.post<AuthResponse>("/api/auth/verify-otp", data);
+  return res.data;
+}
+
+export async function resendOTP(credentials: LoginCredentials): Promise<{ success: boolean; message: string }> {
+  const res = await api.post("/api/auth/resend-otp", credentials);
   return res.data;
 }
 
@@ -70,6 +86,8 @@ export async function logoutUserApi(): Promise<{ success: boolean }> {
     return { success: true };
   }
 }
+
+// ==================== Health & Data API ====================
 
 export async function checkBackendHealth(): Promise<HealthStatus> {
   const res = await api.get<HealthStatus>("/api/health");
@@ -139,4 +157,36 @@ export async function getAnalysisHistory(fileId?: string): Promise<AnalysisHisto
   return res.data;
 }
 
+// ==================== Contact / Support API ====================
 
+export async function submitContactTicket(data: {
+  subject: string;
+  category: string;
+  message: string;
+  email?: string;
+}): Promise<ContactTicket> {
+  const res = await api.post<ContactTicket>("/api/contact/submit", data);
+  return res.data;
+}
+
+export async function getMyTickets(): Promise<{ tickets: ContactTicket[]; total: number }> {
+  const res = await api.get("/api/contact/my-tickets");
+  return res.data;
+}
+
+// ==================== Subscription API ====================
+
+export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
+  const res = await api.get<SubscriptionStatus>("/api/subscription/status");
+  return res.data;
+}
+
+export async function getSubscriptionPlans(): Promise<{ plans: any[] }> {
+  const res = await api.get("/api/subscription/plans");
+  return res.data;
+}
+
+export async function cancelSubscription(): Promise<{ success: boolean; message: string }> {
+  const res = await api.post("/api/subscription/cancel");
+  return res.data;
+}

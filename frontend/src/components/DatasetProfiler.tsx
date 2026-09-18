@@ -55,6 +55,22 @@ export const DatasetProfiler: React.FC<DatasetProfilerProps> = ({
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
+  const rowCount = profile.row_count ?? 0;
+  const colCount = profile.col_count ?? 0;
+  const memoryUsage = profile.memory_usage_mb ?? 0;
+  const duplicateRows = profile.duplicate_row_count ?? (profile as any).duplicate_rows ?? 0;
+  const totalCells = rowCount * colCount;
+  const totalNulls =
+    profile.total_null_count ??
+    profile.columns?.reduce((acc, c) => acc + (c.null_count || 0), 0) ??
+    0;
+  const nullPercent =
+    profile.total_null_percentage != null
+      ? profile.total_null_percentage
+      : totalCells > 0
+      ? (totalNulls / totalCells) * 100
+      : 0;
+
   return (
     <div className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl p-6 space-y-8">
       {/* Top Section: Health Score Ring & Breakdown */}
@@ -62,7 +78,7 @@ export const DatasetProfiler: React.FC<DatasetProfilerProps> = ({
         
         {/* Health Score Ring */}
         <div className={`col-span-1 flex flex-col items-center justify-center p-6 bg-slate-950/60 rounded-2xl border border-slate-800 shadow-xl ${glowColor}`}>
-          <h3 className="text-slate-300 font-semibold mb-4 flex items-center space-x-2">
+          <h3 className="text-slate-300 font-semibold mb-4 flex items-center space-x-2 text-sm">
             <Activity className="h-4 w-4 text-indigo-400" />
             <span>Dataset Health</span>
           </h3>
@@ -104,11 +120,11 @@ export const DatasetProfiler: React.FC<DatasetProfilerProps> = ({
             <span>Health Metrics Breakdown</span>
           </h3>
           {[
-            { label: "Completeness", value: healthScore.completeness },
-            { label: "Consistency", value: healthScore.consistency },
-            { label: "Uniqueness", value: healthScore.uniqueness },
-            { label: "Validity", value: healthScore.validity },
-            { label: "Shape", value: healthScore.shape },
+            { label: "Completeness", value: healthScore.completeness ?? 0 },
+            { label: "Consistency", value: healthScore.consistency ?? 0 },
+            { label: "Uniqueness", value: healthScore.uniqueness ?? 0 },
+            { label: "Validity", value: healthScore.validity ?? 0 },
+            { label: "Shape", value: healthScore.shape ?? 0 },
           ].map((metric) => (
             <div key={metric.label} className="space-y-1.5">
               <div className="flex justify-between text-xs">
@@ -131,12 +147,12 @@ export const DatasetProfiler: React.FC<DatasetProfilerProps> = ({
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {[
-          { label: "Rows", value: profile.row_count.toLocaleString(), icon: <Activity className="h-3.5 w-3.5" /> },
-          { label: "Columns", value: profile.col_count, icon: <BarChart3 className="h-3.5 w-3.5" /> },
-          { label: "Memory Usage", value: `${profile.memory_usage_mb.toFixed(2)} MB`, icon: <Zap className="h-3.5 w-3.5" /> },
-          { label: "Duplicates", value: profile.duplicate_row_count, icon: <Shield className="h-3.5 w-3.5" /> },
-          { label: "Total Nulls", value: profile.total_null_count, icon: <AlertTriangle className="h-3.5 w-3.5" /> },
-          { label: "Null %", value: `${profile.total_null_percentage.toFixed(1)}%`, icon: <TrendingUp className="h-3.5 w-3.5" /> },
+          { label: "Rows", value: rowCount.toLocaleString(), icon: <Activity className="h-3.5 w-3.5" /> },
+          { label: "Columns", value: colCount, icon: <BarChart3 className="h-3.5 w-3.5" /> },
+          { label: "Memory Usage", value: `${memoryUsage.toFixed(2)} MB`, icon: <Zap className="h-3.5 w-3.5" /> },
+          { label: "Duplicates", value: duplicateRows, icon: <Shield className="h-3.5 w-3.5" /> },
+          { label: "Total Nulls", value: totalNulls.toLocaleString(), icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+          { label: "Null %", value: `${nullPercent.toFixed(1)}%`, icon: <TrendingUp className="h-3.5 w-3.5" /> },
         ].map((stat, i) => (
           <div key={i} className="p-3 bg-slate-950/40 rounded-xl border border-slate-800/80 flex flex-col justify-between">
             <span className="flex items-center space-x-1.5 text-xs text-slate-500 mb-1">
@@ -156,7 +172,7 @@ export const DatasetProfiler: React.FC<DatasetProfilerProps> = ({
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-slate-300 font-semibold flex items-center space-x-2 text-sm">
               <AlertTriangle className="h-4 w-4 text-yellow-400" />
-              <span>Data Quality Issues ({healthScore.issues.length})</span>
+              <span>Data Quality Issues ({(healthScore.issues || []).length})</span>
             </h3>
             <button
               onClick={() => setExpandedIssues(!expandedIssues)}
@@ -168,7 +184,7 @@ export const DatasetProfiler: React.FC<DatasetProfilerProps> = ({
           </div>
           
           <div className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-64">
-            {healthScore.issues.slice(0, expandedIssues ? undefined : 3).map((issue, i) => {
+            {(healthScore.issues || []).slice(0, expandedIssues ? undefined : 3).map((issue, i) => {
               const severityColor =
                 issue.severity === "critical"
                   ? "bg-red-500/10 text-red-400 border-red-500/20"
@@ -191,12 +207,12 @@ export const DatasetProfiler: React.FC<DatasetProfilerProps> = ({
                 </div>
               );
             })}
-            {!expandedIssues && healthScore.issues.length > 3 && (
+            {!expandedIssues && (healthScore.issues || []).length > 3 && (
               <div className="text-center pt-2">
-                <span className="text-xs text-slate-500 italic">+{healthScore.issues.length - 3} more issues...</span>
+                <span className="text-xs text-slate-500 italic">+{(healthScore.issues || []).length - 3} more issues...</span>
               </div>
             )}
-            {healthScore.issues.length === 0 && (
+            {(!healthScore.issues || healthScore.issues.length === 0) && (
               <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-8 space-y-2">
                 <CheckCircle className="h-8 w-8 text-emerald-500/40" />
                 <span>No major issues found!</span>
